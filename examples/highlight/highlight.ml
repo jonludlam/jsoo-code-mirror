@@ -25,11 +25,9 @@ let add_underline =
 let underline_mark = Decoration.mark ~className:"cm-underline" ()
 
 let underline_field =
-  let to_jv v = RangeSet.ty_to_jv v in
+  let to_jv v = RangeSet.to_jv v in
   let of_jv jv =
-    RangeSet.ty_of_jv
-      { Types.to_jv = Decoration.to_jv; of_jv = Decoration.of_jv }
-      jv
+    RangeSet.of_jv { Tjv.to_jv = Decoration.to_jv; of_jv = Decoration.of_jv } jv
   in
   StateField.define to_jv of_jv
     ~create:(fun _ -> Decoration.none)
@@ -68,6 +66,7 @@ let underline_selection view =
           let to_ = SelectionRange.to_ r in
           Some (State.StateEffect.of_ add_underline { from; to_ }))
       ranges
+    |> List.map StateEffect.any
   in
   match effects with
   | [] -> false
@@ -84,7 +83,7 @@ let underline_selection view =
               [ StateField.extension underline_field; underline_theme ]
           in
           Console.log [ Jv.of_string "adding underline fields and theme" ];
-          x :: effects
+          StateEffect.any x :: effects
       in
       EditorView.dispatch view (State.Transaction.create ~effects ());
       true
