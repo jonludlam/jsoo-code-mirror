@@ -52,3 +52,34 @@ are referenced from everywhere and everything else is a tree. A package
 with real mutual recursion would need recursive modules instead. Also:
 declaring a record ahead of its home module, as `change_by_range_result`
 does, is the same trick and should be called out where it happens.
+
+## From @codemirror/view
+
+**Noted: another package's types need a public way in.** Binding
+`EditorView.announce`, an effect type CodeMirror itself defines and
+dispatches, needs a `'a StateEffectType.t` wrapping that JavaScript
+object: defining a fresh one produces a different object, so
+`StateEffect.is` never matches. `Tjv.CONV`'s `of_jv` gives every
+container this, so the view package wraps it directly.
+
+**Fix: `Conv.callback`.** The view package is mostly facets of
+functions, each of which was hand-rolling a converter. One combinator
+removes the repetition.
+
+**Accepted: `get_panel` can essentially never return `Some`.** It takes
+the panel constructor as a key, and every conversion of an OCaml
+function to a JavaScript one allocates a fresh closure, so the value
+passed to query is never the one that registered. Not a binding bug;
+inherent to identity-keyed APIs across the boundary. The test documents
+it rather than asserting it away. Any future API keyed on a function
+value has the same problem, so prefer one keyed on a value we can hold.
+
+**Noted: two conventions were wrong as written.** The trailing-`unit`
+rule is about OCaml's warning 16, not about every argument being
+optional; and a package's own forward types are transparent inside its
+file but abstract everywhere else, so cross-package code needs explicit
+conversions. Both are now stated correctly.
+
+**Open: `MouseSelectionStyle` is a shape the conventions do not name,**
+an object of several methods CodeMirror calls back into over a gesture.
+Bound ad hoc. If more of these appear, they want a named pattern.

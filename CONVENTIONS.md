@@ -46,8 +46,13 @@ The bundle sets one global, the package namespace; the OCaml side reads
   binds, e.g. `(** {{:https://codemirror.net/docs/ref/#state.Compartment}
   state.Compartment} *)`, and says only where the OCaml shape differs.
   The reference is the documentation.
-- Optional JS config fields are optional arguments; the trailing `unit`
-  only when every argument is optional.
+- Optional JS config fields are optional arguments. A trailing `unit` is
+  needed whenever an optional argument is not followed by a positional
+  one (OCaml's warning 16), which includes the case where only labelled
+  arguments follow.
+- Across packages, another package's types are abstract even though they
+  are all `Jv.t` inside its own file: convert explicitly with `to_jv` and
+  `of_jv` rather than assuming a bare value will typecheck.
 
 ## Typed values
 
