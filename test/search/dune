@@ -1,0 +1,8 @@
+(executable
+ (name search)
+ (modes js)
+ (libraries brr cm_state cm_view cm_search))
+
+(alias
+ (name all)
+ (deps index.html))
