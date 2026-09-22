@@ -27,12 +27,6 @@ module Conv : sig
   (** raises [Invalid_argument] naming the module; for [of_jv] that cannot
       decode *)
 
-  val callback : arity:int -> ('a -> 'b -> 'c) -> 'a t
-  (** For a facet or option whose value is a function. [callback ~arity raw]
-      converts [v] by wrapping [raw v], a function of [arity] {!Jv.t} arguments,
-      with {!Jv.callback}. [of_jv] raises: a JavaScript function cannot be
-      turned back into an OCaml one, and facets of functions are written rather
-      than read. *)
 end
 
 (* Forward declarations, equated below. *)
@@ -368,6 +362,10 @@ module StateField : sig
   val init : 'a t -> (editor_state -> 'a) -> Extension.t
   val conv : 'a t -> 'a Conv.t
   val to_jv : 'a t -> Jv.t
+
+  val of_jv : 'a Conv.t -> Jv.t -> 'a t
+  (** Wraps a field another package defines, such as \@codemirror/language's
+      [foldState]. *)
 end
 
 (** {{:https://codemirror.net/docs/ref/#state.Compartment} state.Compartment} *)

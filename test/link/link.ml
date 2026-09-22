@@ -29,7 +29,7 @@ let () =
         "__CM__codemirror";
       ]
   in
-  let basic = not (Jv.is_undefined (Code_mirror.basic_setup ())) in
+  let basic = not (Jv.is_undefined (Code_mirror.basic_setup)) in
   Jv.set Jv.global "linkResult"
     (Jv.obj
        [|

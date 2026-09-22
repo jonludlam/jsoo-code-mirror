@@ -22,11 +22,6 @@ module Conv = struct
 
   let invalid name (_ : Jv.t) = invalid_arg name
 
-  let callback ~arity raw =
-    {
-      to_jv = (fun v -> Jv.callback ~arity (raw v));
-      of_jv = (fun _ -> invalid "Conv.callback" Jv.null);
-    }
 end
 
 (* Forward declarations, equated inside the modules below. *)
@@ -588,6 +583,9 @@ module StateField = struct
 
   let conv (f : 'a t) = f.field_conv
   let to_jv (f : 'a t) = f.field_jv
+
+  let of_jv (conv : 'a Conv.t) (jv : Jv.t) : 'a t =
+    { field_jv = jv; field_conv = conv }
 end
 
 module Compartment = struct
