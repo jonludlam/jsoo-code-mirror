@@ -26,6 +26,13 @@ module Conv : sig
   val invalid : string -> Jv.t -> 'a
   (** raises [Invalid_argument] naming the module; for [of_jv] that cannot
       decode *)
+
+  val callback : arity:int -> ('a -> 'b -> 'c) -> 'a t
+  (** For a facet or option whose value is a function. [callback ~arity raw]
+      converts [v] by wrapping [raw v], a function of [arity] {!Jv.t} arguments,
+      with {!Jv.callback}. [of_jv] raises: a JavaScript function cannot be
+      turned back into an OCaml one, and facets of functions are written rather
+      than read. *)
 end
 
 (** Typed JavaScript values, after patricoferris/jsoo-code-mirror#17.
@@ -71,6 +78,9 @@ type state_effect
 type 'a state_field
 type annotation
 type ('i, 'o) facet
+
+type 'o facet_reader
+(** A facet seen read-only; see {!Facet.reader}. *)
 
 (** {{:https://codemirror.net/docs/ref/#state.Extension} state.Extension} *)
 module Extension : sig
@@ -168,10 +178,10 @@ module ChangeDesc : sig
   (** [None] when [mode] says the position was deleted; with the default mode a
       position is always mapped. *)
 
-  val touches_range : t -> from:int -> ?to_:int -> unit -> bool
-  (** JavaScript's [touchesRange] can also return the string ["cover"] when a
-      change entirely covers the range; that distinction from plain [true] is
-      not kept here. *)
+  val touches_range :
+    t -> from:int -> ?to_:int -> unit -> [ `No | `Touches | `Covers ]
+  (** [`Covers] is JavaScript's ["cover"]: the range is inside a single
+      replacement, so anything positioned in it is gone rather than moved. *)
 
   val invert : t -> t
   val compose_desc : t -> t -> t
@@ -366,11 +376,9 @@ module Facet : sig
   val to_jv : ('i, 'o) t -> Jv.t
   val of_jv : 'i Conv.t -> 'o Conv.t -> Jv.t -> ('i, 'o) t
 
-  val reader : ('i, 'o) t -> Extension.t
-  (** [facet.reader] is a [FacetReader], an unrelated type only used with
-      {!EditorState.facet}; there is no meaningful conversion to [Extension.t],
-      but that is the fixed shape of this binding, so the underlying JavaScript
-      value is passed through as-is. *)
+  val reader : ('i, 'o) t -> 'o facet_reader
+  (** A read-only view of the facet, which {!EditorState.facet} also accepts.
+      Not an {!Extension.t}: it configures nothing. *)
 end
 
 (** {{:https://codemirror.net/docs/ref/#state.StateField} state.StateField} *)
@@ -382,14 +390,12 @@ module StateField : sig
   val define :
     ?compare:('a -> 'a -> bool) ->
     ?provide:('a t -> Extension.t) ->
-    ?to_json:('a -> Jv.t) ->
-    ?from_json:(Jv.t -> 'a) ->
+    ?to_json:('a -> editor_state -> Jv.t) ->
+    ?from_json:(Jv.t -> editor_state -> 'a) ->
     'a Conv.t ->
     create:(editor_state -> 'a) ->
     update:('a -> transaction -> 'a) ->
     'a t
-  (** [to_json]/[from_json] drop the [state] argument JavaScript's
-      [StateFieldSpec] passes alongside the value/json. *)
 
   val extension : 'a t -> Extension.t
   val init : 'a t -> (editor_state -> 'a) -> Extension.t

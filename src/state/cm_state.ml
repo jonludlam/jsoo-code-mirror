@@ -21,6 +21,12 @@ module Conv = struct
     { to_jv = M.to_jv; of_jv = M.of_jv }
 
   let invalid name (_ : Jv.t) = invalid_arg name
+
+  let callback ~arity raw =
+    {
+      to_jv = (fun v -> Jv.callback ~arity (raw v));
+      of_jv = (fun _ -> invalid "Conv.callback" Jv.null);
+    }
 end
 
 (* A typed Jv value, after patricoferris/jsoo-code-mirror#17: the one
@@ -68,6 +74,8 @@ type ('i, 'o) facet = {
   in_conv : 'i Conv.t;
   out_conv : 'o Conv.t;
 }
+
+type 'o facet_reader = Jv.t
 
 let pkg = lazy (Jv.get Jv.global "__CM__state")
 let annotation_cls = lazy (Jv.get (Lazy.force pkg) "Annotation")
@@ -236,7 +244,9 @@ module ChangeDesc = struct
 
   let touches_range t ~from ?to_ () =
     let r = Jv.call t "touchesRange" [| Jv.of_int from; opt_int to_ |] in
-    if Jstr.to_string (Jv.typeof r) = "string" then true else Jv.to_bool r
+    if Jstr.to_string (Jv.typeof r) = "string" then `Covers
+    else if Jv.to_bool r then `Touches
+    else `No
 
   let invert t : t = Jv.get t "invertedDesc"
   let compose_desc t other = Jv.call t "composeDesc" [| other |]
@@ -553,7 +563,7 @@ module Facet = struct
   let of_jv ic oc jv : ('i, 'o) t =
     { facet_jv = jv; in_conv = ic; out_conv = oc }
 
-  let reader (f : ('i, 'o) t) : Extension.t = Jv.get f.facet_jv "reader"
+  let reader (f : ('i, 'o) t) : 'o facet_reader = Jv.get f.facet_jv "reader"
 end
 
 module StateField = struct
@@ -586,12 +596,12 @@ module StateField = struct
       provide;
     Option.iter
       (fun f ->
-        let wrapped (v : Jv.t) (_st : Jv.t) = f (conv.of_jv v) in
+        let wrapped (v : Jv.t) (st : Jv.t) = f (conv.of_jv v) st in
         Jv.set o "toJSON" (Jv.callback ~arity:2 wrapped))
       to_json;
     Option.iter
       (fun f ->
-        let wrapped (j : Jv.t) (_st : Jv.t) = conv.to_jv (f j) in
+        let wrapped (j : Jv.t) (st : Jv.t) = conv.to_jv (f j st) in
         Jv.set o "fromJSON" (Jv.callback ~arity:2 wrapped))
       from_json;
     let field_jv = Jv.call (Lazy.force state_field_cls) "define" [| o |] in
