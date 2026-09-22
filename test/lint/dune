@@ -1,0 +1,8 @@
+(executable
+ (name lint)
+ (modes js)
+ (libraries brr code-mirror.state code-mirror.view code-mirror.lint))
+
+(alias
+ (name all)
+ (deps index.html))
