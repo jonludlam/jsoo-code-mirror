@@ -26,13 +26,6 @@ module Conv : sig
   val invalid : string -> Jv.t -> 'a
   (** raises [Invalid_argument] naming the module; for [of_jv] that cannot
       decode *)
-
-  val callback : arity:int -> ('a -> 'b -> 'c) -> 'a t
-  (** For a facet or option whose value is a function. [callback ~arity raw]
-      converts [v] by wrapping [raw v], a function of [arity] {!Jv.t} arguments,
-      with {!Jv.callback}. [of_jv] raises: a JavaScript function cannot be
-      turned back into an OCaml one, and facets of functions are written rather
-      than read. *)
 end
 
 (** Typed JavaScript values, after patricoferris/jsoo-code-mirror#17.

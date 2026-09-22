@@ -21,12 +21,6 @@ module Conv = struct
     { to_jv = M.to_jv; of_jv = M.of_jv }
 
   let invalid name (_ : Jv.t) = invalid_arg name
-
-  let callback ~arity raw =
-    {
-      to_jv = (fun v -> Jv.callback ~arity (raw v));
-      of_jv = (fun _ -> invalid "Conv.callback" Jv.null);
-    }
 end
 
 (* A typed Jv value, after patricoferris/jsoo-code-mirror#17: the one
