@@ -47,3 +47,37 @@ are referenced from everywhere and everything else is a tree. A package
 with real mutual recursion would need recursive modules instead. Also:
 declaring a record ahead of its home module, as `change_by_range_result`
 does, is the same trick and should be called out where it happens.
+
+## From @codemirror/view
+
+**Fix: `StateEffectType` and `AnnotationType` gained `to_jv`/`of_jv`.**
+Binding `EditorView.announce`, an effect type CodeMirror itself defines
+and dispatches, was impossible through the public interface: defining a
+fresh one produces a different JavaScript object, so `StateEffect.is`
+never matches. The view agent reached for `Obj.magic` over a hand-copied
+mirror of state's private record, which works under js_of_ocaml's
+representation and is exactly the kind of thing that rots. Anything one
+package defines and another must name needs a public way in. Now fixed,
+and the `Obj.magic` is gone.
+
+**Fix: `Conv.callback`.** The view package is mostly facets of
+functions, each of which was hand-rolling a converter. One combinator
+removes the repetition.
+
+**Accepted: `get_panel` can essentially never return `Some`.** It takes
+the panel constructor as a key, and every conversion of an OCaml
+function to a JavaScript one allocates a fresh closure, so the value
+passed to query is never the one that registered. Not a binding bug;
+inherent to identity-keyed APIs across the boundary. The test documents
+it rather than asserting it away. Any future API keyed on a function
+value has the same problem, so prefer one keyed on a value we can hold.
+
+**Noted: two conventions were wrong as written.** The trailing-`unit`
+rule is about OCaml's warning 16, not about every argument being
+optional; and a package's own forward types are transparent inside its
+file but abstract everywhere else, so cross-package code needs explicit
+conversions. Both are now stated correctly.
+
+**Open: `MouseSelectionStyle` is a shape the conventions do not name,**
+an object of several methods CodeMirror calls back into over a gesture.
+Bound ad hoc. If more of these appear, they want a named pattern.
