@@ -1,0 +1,8 @@
+; The self-check every example page with an editor runs: Check_core, keep,
+; and a few helpers for driving and reading an editor. The pages that port
+; codemirror.net's examples keep theirs in a separate selfcheck.ml, so the
+; ported files read as the originals do.
+
+(library
+ (name example_check)
+ (libraries check_core brr code-mirror.state code-mirror.view))

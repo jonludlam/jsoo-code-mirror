@@ -8,7 +8,9 @@ demonstrate what depending on one package rather than all of them costs.
 Every example page sets `window.exampleResults = {total, passed, failed,
 details, done}` the way the tests do, asserting whatever it can about
 itself, so the whole directory can be swept in a browser rather than
-eyeballed one at a time.
+eyeballed one at a time. The checks share `examples/check`, and leave
+the page as it opened: a check passes the views it will change to
+`keep`, and `report` puts their states back.
 
 ## Ported from the existing set
 

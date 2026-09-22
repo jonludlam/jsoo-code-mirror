@@ -1,7 +1,7 @@
 (executable
  (name highlight)
  (modes js)
- (libraries code-mirror))
+ (libraries example_check brr code-mirror))
 
 (alias
  (name all)

@@ -1,4 +1,1 @@
 (data_only_dirs node_modules js)
-
-; examples are ported to the new layout last; until then they are not built
-(dirs :standard \ examples)

@@ -1,68 +1,78 @@
-open Code_mirror
-open State
-open View
+(* Panels: a StateField of bool tracks whether the panel is open, an
+   effect flips it, and [Facet.from] hooks the field into [show_panel] so
+   the panel appears and disappears with the field's value. A keymap
+   binding runs the toggle. *)
+
 open Brr
+open Cm_state
+open Cm_view
 
-let basic_setup = Jv.get Jv.global "__CM__basic_setup" |> Extension.of_jv
+let panel_toggle : bool StateEffectType.t = StateEffectType.define Conv.bool
 
-let init ?doc ?(exts = []) () =
-  let config =
-    EditorStateConfig.create ?doc ~extensions:(basic_setup :: exts) ()
-  in
-  let state = EditorState.create ~config () in
-  let config =
-    EditorViewConfig.create ~state ~parent:(Document.body G.document) ()
-  in
-  let view : EditorView.t = EditorView.create ~config () in
-  (state, view)
+let panel_ctor (_view : editor_view) : Panel.t =
+  Panel.create (El.div [ El.txt' "Hello! This is a panel" ])
 
-let update dom v =
-  let st = EditorView.Update.state v in
-  let doc = EditorState.doc st in
-  let length = Text.length doc in
-  El.set_children dom [ El.txt' (string_of_int length) ]
+let panel_field : bool StateField.t =
+  StateField.define Conv.bool
+    ~create:(fun _ -> false)
+    ~update:(fun cur tr ->
+      List.fold_left
+        (fun cur eff ->
+          match StateEffect.value eff panel_toggle with
+          | Some b -> b
+          | None -> cur)
+        cur (Transaction.effects tr))
+    ~provide:(fun field ->
+      Facet.from
+        ~get:(fun on -> if on then Some panel_ctor else None)
+        show_panel field)
 
-let panel_constructor (_v : EditorView.t) =
-  let dom = Brr.El.div [ Brr.El.txt (Jstr.v "Hello! This is a panel\n") ] in
-  Panel.create ~update:(update dom) dom
+let toggle_panel view =
+  let cur = EditorState.field (EditorView.state view) panel_field in
+  EditorView.dispatch view
+    (TransactionSpec.create
+       ~effects:[ StateEffectType.of_ panel_toggle (not cur) ]
+       ());
+  true
 
-let _ =
-  let toggleHelp = StateEffect.define Jv.of_bool Jv.to_bool in
+let keymap_ext =
+  Facet.of_ keymap [ KeyBinding.create ~key:"F1" ~run:toggle_panel () ]
 
-  let state_update cur t =
-    let effects = Transaction.effects t in
-    List.fold_right
-      (fun e cur ->
-        match StateEffect.value e toggleHelp with Some b -> b | _ -> cur)
-      effects cur
-  in
+let container = El.div []
+let () = El.append_children (Document.body G.document) [ container ]
 
-  let provide field =
-    Facet.from' showPanel field (fun b ->
-        if b then Some panel_constructor else None)
-  in
+let config =
+  EditorStateConfig.create ~doc:"Press F1 to toggle the panel."
+    ~extensions:
+      (Extension.of_list [ keymap_ext; StateField.extension panel_field ])
+    ()
 
-  let help_state =
-    StateField.define Jv.of_bool Jv.to_bool
-      ~create:(fun _ -> false)
-      ~provide ~update:state_update
-  in
+let state = EditorState.create ~config ()
 
-  let run v =
-    let cur = EditorState.field (EditorView.state v) help_state in
-    let eff = StateEffect.of_ toggleHelp (not cur) in
-    let transaction = TransactionSpec.create ~effects:[ eff ] () in
-    EditorView.dispatch v transaction;
-    true
-  in
+let view =
+  EditorView.create
+    ~config:(EditorViewConfig.create ~state ~parent:container ())
+    ()
 
-  let keymap = Keymap.create ~key:"F1" ~run () in
+(* -- self-check -------------------------------------------------------- *)
 
-  let ext = Facet.of_ Keymap.keymap keymap in
+open Example_check
 
-  let _editor =
-    init ~doc:"Press 'f1' to toggle the panel"
-      ~exts:[ ext; StateField.extension help_state ]
-      ()
-  in
-  ()
+let () =
+  keep [ view ];
+  check "the panel field starts closed" (fun () ->
+      not (EditorState.field (EditorView.state view) panel_field));
+
+  check "F1 toggles the panel field on" (fun () ->
+      ignore (toggle_panel view);
+      EditorState.field (EditorView.state view) panel_field);
+
+  check "the panel appears in the DOM once shown" (fun () ->
+      El.find_by_tag_name ~root:(EditorView.dom view) (Jstr.v "div")
+      |> List.exists (fun e ->
+             Jstr.find_sub
+               ~sub:(Jstr.v "Hello! This is a panel")
+               (El.text_content e)
+             <> None));
+
+  report ()

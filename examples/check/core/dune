@@ -1,0 +1,6 @@
+; The part of the self-check that needs no editor, for a page that links
+; nothing but what it demonstrates (headless needs only state).
+
+(library
+ (name check_core)
+ (libraries brr))

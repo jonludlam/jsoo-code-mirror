@@ -223,6 +223,12 @@ module EditorView : sig
   val composing : t -> bool
   val in_view : t -> bool
   val line_wrapping : t -> bool
+  (** Read from the editor's measured layout, not from the extension, so it
+      does not see a {!line_wrapping_extension} installed earlier in the
+      same tick: it updates on the next measurement pass. To check the
+      effect of a reconfiguration immediately, look for the
+      [cm-lineWrapping] class on the content element instead. *)
+
   val text_direction : t -> Direction.t
   val viewport : t -> int * int
   val visible_ranges : t -> (int * int) list
