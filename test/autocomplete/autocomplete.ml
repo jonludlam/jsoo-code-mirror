@@ -56,10 +56,13 @@ let () = El.append_children (Document.body G.document) [ container1 ]
 let source =
   complete_from_list (List.map (fun w -> Completion.create ~label:w ()) words)
 
+(* close_on_blur:false because creating the later editors takes the focus,
+   and a blurred editor closes its completion. *)
 let extensions1 =
   Extension.of_list
     [
-      autocompletion ~override:[ source ] (); Facet.of_ keymap completion_keymap;
+      autocompletion ~override:[ source ] ~close_on_blur:false ();
+      Facet.of_ keymap completion_keymap;
     ]
 
 let state1_config =
@@ -139,6 +142,7 @@ let stage3 () =
           | _ -> false));
 
   let apply_snippet = snippet "foo(${a}, ${b})" in
+  EditorView.focus view3;
   apply_snippet view3 None ~from:0 ~to_:0;
 
   check "snippet inserts its literal text with the fields' defaults" (fun () ->
@@ -155,8 +159,12 @@ let stage3 () =
       | [ r ] -> SelectionRange.from r = 7 && SelectionRange.to_ r = 8
       | _ -> false);
 
-  check "has_prev_snippet_field is true once on the second field" (fun () ->
-      has_prev_snippet_field (EditorView.state view3));
+  (* CodeMirror deactivates the snippet once the selection reaches the last
+     field, so on the second of two fields neither direction is available.
+     Checked against the JavaScript directly, not a quirk of the binding. *)
+  check "the snippet deactivates on reaching its last field" (fun () ->
+      (not (has_next_snippet_field (EditorView.state view3)))
+      && not (has_prev_snippet_field (EditorView.state view3)));
 
   check "clear_snippet deactivates the snippet's fields" (fun () ->
       let (_ : bool) = clear_snippet view3 in
@@ -204,12 +212,23 @@ let stage1 (found : bool) =
       in
       n = List.length words);
 
-  check "accept_completion inserts the selected completion's text" (fun () ->
-      let (_ : bool) = accept_completion view1 in
-      let doc = Text.to_string (EditorState.doc (EditorView.state view1)) in
-      List.mem doc words);
-
-  Fut.await (hand_source hand_ctx) stage2
+  (* accept_completion refuses for the first interaction_delay milliseconds
+     after the completion opens (75 by default), and only acts on a focused
+     view, which creating the later editors took away. So: refocus, wait out
+     the delay, then accept. *)
+  let accept_then_continue () =
+    EditorView.focus view1;
+    Fut.await (Fut.tick ~ms:200) (fun () ->
+        check "accept_completion inserts the selected completion's text"
+          (fun () ->
+            let (_ : bool) = accept_completion view1 in
+            let doc =
+              Text.to_string (EditorState.doc (EditorView.state view1))
+            in
+            List.mem doc words);
+        Fut.await (hand_source hand_ctx) stage2)
+  in
+  accept_then_continue ()
 
 let () =
   check "editor1's initial document renders \"he\"" (fun () ->
