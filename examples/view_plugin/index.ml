@@ -73,8 +73,18 @@ let doc_text =
 let container = El.div ~at:At.[ id (Jstr.v "editor") ] []
 let () = El.append_children (Document.body G.document) [ container ]
 
+(* Visible even with no page stylesheet of our own, the way the mark
+   decoration in test/view/view.ml relies on its own theme too. *)
+let highlight_theme =
+  EditorView.base_theme
+    [
+      ( ".cm-word-occurrence",
+        StyleSpec.Rules [ ("backgroundColor", StyleSpec.Value "#ffe38f") ] );
+    ]
+
 let extensions =
-  Extension.of_list [ ViewPlugin.extension word_highlighter; line_numbers () ]
+  Extension.of_list
+    [ ViewPlugin.extension word_highlighter; line_numbers (); highlight_theme ]
 
 let editor_state_config = EditorStateConfig.create ~doc:doc_text ~extensions ()
 let editor_state = EditorState.create ~config:editor_state_config ()

@@ -145,7 +145,10 @@ module Decoration : sig
     t
 
   val line : ?attributes:attrs -> ?class_:string -> unit -> t
+
   val range : ?to_:int -> t -> from:int -> t Range.t
+  (** [to_] defaults to [from]: a point rather than a span. *)
+
   val none : t RangeSet.t
   val set : ?sort:bool -> t Range.t list -> t RangeSet.t
   val spec : t -> Jv.t
@@ -178,6 +181,11 @@ end
 module ViewPlugin : sig
   type 'a t
 
+  (** Unlike {!Cm_state.StateField.define}, whose [update] returns the new
+      value, a plugin's [update] returns [unit] and is expected to change the
+      plugin's value in place, as CodeMirror's own [PluginValue] does. A plugin
+      that keeps anything therefore wants a mutable record or a ref as its value
+      type. *)
   val define :
     ?update:('a -> view_update -> unit) ->
     ?doc_view_update:('a -> editor_view -> unit) ->
@@ -217,12 +225,13 @@ module EditorView : sig
   val request_measure : t -> unit
   val composing : t -> bool
   val in_view : t -> bool
+
   val line_wrapping : t -> bool
-  (** Read from the editor's measured layout, not from the extension, so it
-      does not see a {!line_wrapping_extension} installed earlier in the
-      same tick: it updates on the next measurement pass. To check the
-      effect of a reconfiguration immediately, look for the
-      [cm-lineWrapping] class on the content element instead. *)
+  (** Read from the editor's measured layout, not from the extension, so it does
+      not see a {!line_wrapping_extension} installed earlier in the same tick:
+      it updates on the next measurement pass. To check the effect of a
+      reconfiguration immediately, look for the [cm-lineWrapping] class on the
+      content element instead. *)
 
   val text_direction : t -> Direction.t
   val viewport : t -> int * int
@@ -400,6 +409,7 @@ module GutterMarker : sig
     t
 
   val range : ?to_:int -> t -> from:int -> t Range.t
+  (** [to_] defaults to [from]: a point rather than a span. *)
 end
 
 (** {{:https://codemirror.net/docs/ref/#view.BlockType} view.BlockType} *)
