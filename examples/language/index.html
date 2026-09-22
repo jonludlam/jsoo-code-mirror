@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>language</title>
+    <style>
+        #node-path { font-family: monospace; margin-top: 0.5em; }
+        /* the HighlightStyle's TagStyle.make ~class_ case: this page owns
+           the CSS for a class-based tag style, the way it would own any
+           other CSS class it uses. */
+        .cm-lang-keyword { color: #c678dd; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+    <p>A toy language (keywords, numbers, strings, line comments), written
+        by hand as a stream parser, with its own highlight style. Move the
+        cursor around the editor to see the syntax tree node under it.</p>
+    <script type="module" src="index.bc.js"></script>
+</body>
+
+</html>

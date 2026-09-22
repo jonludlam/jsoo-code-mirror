@@ -1,0 +1,11 @@
+; The flagship example depends on the umbrella library: it wants
+; basic_setup, which only [code-mirror] (not any one sub-library) provides.
+
+(executable
+ (name index)
+ (modes js)
+ (libraries example_check code-mirror))
+
+(alias
+ (name all)
+ (deps index.html))

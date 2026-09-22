@@ -81,7 +81,12 @@ module Tree : sig
   val type_ : t -> node_type
   val length : t -> int
   val top_node : t -> syntax_node
+
   val resolve : ?side:int -> t -> int -> syntax_node
+  (** At a position between two tokens this returns the node that ends there,
+      which for position 0 is the whole document. Pass a position inside the
+      token, or a [side], to descend into it. *)
+
   val resolve_inner : ?side:int -> t -> int -> syntax_node
   val prop : t -> NodeProp.t -> Jv.t option
 
@@ -660,7 +665,10 @@ module TagStyle : sig
   include Jv.CONV with type t := t
 
   val conv : t Conv.t
+
   val make : ?class_:string -> ?style:Cm_view.StyleSpec.t -> Tag.t list -> t
+  (** [class_] only puts the class on the matching spans; the page must supply a
+      rule for it. [style] carries the declarations itself. *)
 end
 
 (** {{:https://codemirror.net/docs/ref/#language.HighlightStyle}

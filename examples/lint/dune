@@ -1,0 +1,8 @@
+(executable
+ (name index)
+ (modes js)
+ (libraries example_check brr code-mirror.state code-mirror.view code-mirror.lint))
+
+(alias
+ (name all)
+ (deps index.html))
