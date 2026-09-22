@@ -69,6 +69,18 @@ The OCaml side is too, carrying a converter:
 - A converter that cannot decode raises `Invalid_argument` with the
   module name. Never `assert false`.
 
+## Unions, and what the types must not allow
+
+Everything is `Jv.t` underneath, so a wrong binding usually compiles.
+Two rules follow:
+
+- A JavaScript union of a boolean and a string constant (`boolean |
+  "cover"`) becomes a polymorphic variant, never a `bool`.
+- A distinct JavaScript type gets a distinct OCaml type, even when it is
+  only ever passed straight back to the library. Giving it the type of
+  something structurally similar (a `FacetReader` typed as an
+  `Extension`) buys nothing and lets meaningless code typecheck.
+
 ## Requests and results
 
 `TransactionSpec` is what you ask for; `Transaction` is what the state
@@ -84,6 +96,13 @@ example `EditorViewConfig` mentions `EditorView.t`), declare a forward
 abstract type at the top of the `.mli` (`type editor_view`) and equate it
 in the later module (`module EditorView : sig type t = editor_view ...`).
 Do not add a `Types` module.
+
+This works because a handful of central types are referenced from
+everywhere and the rest is a tree; it is not a general answer to mutual
+recursion, and a package that needs one should say so rather than
+contorting. A record type declared above its natural home for the same
+reason (a callback's return shape) is the same trick: put it with the
+forward types and say what it is for.
 
 ## Examples
 
