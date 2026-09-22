@@ -56,6 +56,16 @@ module Tjv = struct
   end
 end
 
+module Async = struct
+  let promise_of_fut encode fut =
+    Fut.to_promise ~ok:Fun.id (Fut.map (fun v -> Ok (encode v)) fut)
+
+  let fut_of_promise decode p =
+    let fut, set = Fut.create () in
+    Jv.Promise.await p (fun v -> set (decode v));
+    fut
+end
+
 (* Forward declarations, equated inside the modules below. *)
 type editor_state = Jv.t
 type transaction = Jv.t

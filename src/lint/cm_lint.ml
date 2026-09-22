@@ -89,11 +89,8 @@ let linter ?delay ?needs_refresh ?marker_filter ?tooltip_filter ?hide_on
     ?auto_panel (source : EditorView.t -> Diagnostic.t list Fut.t) : Extension.t
     =
   let wrapped (view : Jv.t) =
-    let fut = source (EditorView.of_jv view) in
-    let result_fut =
-      Fut.map (fun diags -> Ok (Jv.of_list Diagnostic.to_jv diags)) fut
-    in
-    Fut.to_promise ~ok:Fun.id result_fut
+    source (EditorView.of_jv view)
+    |> Async.promise_of_fut (Jv.of_list Diagnostic.to_jv)
   in
   let o = Jv.obj [||] in
   Jv.Int.set_if_some o "delay" delay;

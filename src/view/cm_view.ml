@@ -1205,14 +1205,10 @@ let hover_tooltip ?hide_on_change ?hover_time
     (source : editor_view -> pos:int -> side:int -> Tooltip.t option Fut.t) :
     Extension.t =
   let wrapped (view : Jv.t) (pos : Jv.t) (side : Jv.t) =
-    let fut = source view ~pos:(Jv.to_int pos) ~side:(Jv.to_int side) in
-    let result_fut =
-      Fut.map
-        (fun (v : Tooltip.t option) ->
-          Ok (match v with None -> Jv.null | Some t -> t))
-        fut
-    in
-    Fut.to_promise ~ok:Fun.id result_fut
+    source view ~pos:(Jv.to_int pos) ~side:(Jv.to_int side)
+    |> Async.promise_of_fut (function
+         | None -> Jv.null
+         | Some t -> Tooltip.to_jv t)
   in
   let o = Jv.obj [||] in
   Jv.Bool.set_if_some o "hideOnChange" hide_on_change;

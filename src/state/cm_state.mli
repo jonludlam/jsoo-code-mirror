@@ -64,6 +64,23 @@ module Tjv : sig
   end
 end
 
+(** Bridging OCaml futures and JavaScript promises.
+
+    Not part of CodeMirror: shared plumbing, here because every package that
+    takes an asynchronous source needs it and they all depend on this one. A
+    CodeMirror source returning [Promise<T>] is an OCaml function returning
+    ['a Fut.t]; these convert the result. *)
+module Async : sig
+  val promise_of_fut : ('a -> Jv.t) -> 'a Fut.t -> Jv.t
+  (** [promise_of_fut encode fut] is the promise a JavaScript caller expects,
+      resolving with [encode]'s result. *)
+
+  val fut_of_promise : (Jv.t -> 'a) -> Jv.t -> 'a Fut.t
+  (** [fut_of_promise decode p] awaits [p], decoding what it resolves to. Use
+      {!Jv.Promise.resolve} first where the JavaScript value may be either a
+      promise or a plain result. *)
+end
+
 (* Forward declarations, equated below. *)
 type editor_state
 type transaction

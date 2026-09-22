@@ -237,16 +237,10 @@ type completion_source = CompletionContext.t -> CompletionResult.t option Fut.t
 let source_to_jv (src : completion_source) : Jv.t =
   let wrapped (ctx : Jv.t) =
     let fut = src (CompletionContext.of_jv ctx) in
-    let result_fut =
-      Fut.map
-        (fun (r : CompletionResult.t option) ->
-          Ok
-            (match r with
-            | None -> Jv.null
-            | Some r -> CompletionResult.to_jv r))
-        fut
-    in
-    Fut.to_promise ~ok:Fun.id result_fut
+    fut
+    |> Async.promise_of_fut (function
+         | None -> Jv.null
+         | Some r -> CompletionResult.to_jv r)
   in
   Jv.callback ~arity:1 wrapped
 

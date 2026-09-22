@@ -37,14 +37,8 @@ let opt_jv = Jv.of_option ~none:Jv.undefined Fun.id
    [hover_tooltip]), so this is the one place a promise flows the other
    way. Rejections are dropped: the future simply never determines, which
    matches this binding's simplified (non-[result]) [Fut.t] signature. *)
-let fut_of_promise (decode : Jv.t -> 'a) (p : Jv.t) : 'a Fut.t =
-  let fut, set = Fut.create () in
-  Jv.Promise.await p (fun v -> set (decode v));
-  fut
-
-let promise_of_fut (encode : 'a -> Jv.t) (fut : 'a Fut.t) : Jv.t =
-  let result_fut = Fut.map (fun v -> Ok (encode v)) fut in
-  Fut.to_promise ~ok:Fun.id result_fut
+let fut_of_promise = Async.fut_of_promise
+let promise_of_fut = Async.promise_of_fut
 
 module NodeProp = struct
   type t = Jv.t
