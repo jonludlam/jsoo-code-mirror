@@ -1,0 +1,8 @@
+(executable
+ (name commands)
+ (modes js)
+ (libraries brr cm_state cm_view cm_commands))
+
+(alias
+ (name all)
+ (deps index.html))
