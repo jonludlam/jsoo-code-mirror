@@ -1,0 +1,8 @@
+(executable
+ (name link)
+ (modes js)
+ (libraries brr code-mirror))
+
+(alias
+ (name all)
+ (deps index.html))
