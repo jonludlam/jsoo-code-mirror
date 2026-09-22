@@ -1,0 +1,9 @@
+(executable
+ (name test_state)
+ (modes js)
+ (libraries code-mirror.state code-mirror.view))
+
+(rule
+ (alias runtest)
+ (action
+  (run node %{dep:test_state.bc.js})))

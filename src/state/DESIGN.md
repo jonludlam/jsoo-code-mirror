@@ -391,3 +391,71 @@ val code_point_size : int -> int
 val from_code_point : int -> string
 module CharCategory : sig type t = Word | Space | Other end
 ```
+
+## Questions and friction
+
+Things in the fixed signatures (or their natural extension to the rest of
+the package) that turned out awkward, surprising, or worth a second look:
+
+- **`Facet.reader` typed as `Extension.t`.** JavaScript's `facet.reader`
+  is a `FacetReader`, a type unrelated to `Extension` that exists only so
+  `EditorState.facet`/`Facet.compute` can accept either a `Facet` or a
+  reader. Typing it as `Extension.t` compiles only because every bound
+  type here is `Jv.t` underneath, so the "conversion" is a silent
+  bitcast with no real relationship to what an `Extension` is. It works,
+  but a reader passed to `Prec.highest` or `Extension.of_list` would
+  silently produce garbage instead of a type error. A `FacetReader.t`
+  forward type (like `state_effect`/`annotation`) would have been
+  cleaner and not meaningfully harder to wire through `Facet.compute`'s
+  `dep` and `EditorState.facet`.
+- **Which types carry a converter is invisible in the interface.**
+  `StateField.t`/`AnnotationType.t`/`StateEffectType.t`/`Range.t`/
+  `RangeSet.t` carry a `Conv.t` alongside the raw `Jv.t` handle through
+  `Tjv` (since e.g. `Range.value` has no way to get a converter from the
+  call site), and `Facet.t` through its own record, while
+  `Extension.t`/`Transaction.t` stay `Jv.t`. A reader of the `.mli` alone
+  can't tell which is which; only the implementation reveals it.
+- **`RangeSet.eq`'s single-pair signature loses information.**
+  JavaScript's static `RangeSet.eq` compares *groups* of sets in one
+  pass (used by the view layer to diff old vs. new decoration layers
+  cheaply); the fixed signature reduces this to comparing exactly one
+  set to one set. That is implementable (wrap each side in a
+  one-element array before calling), but it means a consumer wanting the
+  real multi-set comparison has to reconstruct it themselves via
+  `RangeSet.join`, which changes its complexity characteristics (join
+  eagerly merges, rather than comparing lazily during iteration).
+- **`ChangeDesc.touches_range` losing the `"cover"` case.** JavaScript
+  returns `boolean | "cover"`; collapsing that to `bool` (as the fixed
+  signature requires) is a real loss of information for a caller who
+  specifically wants to know "does one change swallow this range
+  entirely", e.g. to decide whether a decoration should be dropped
+  outright rather than just re-rendered. A `[ \`No | \`Touches | \`Covers ]`
+  return type would have kept this without much extra cost.
+- **`?to_json`/`?from_json` on `StateField.define` drop the `state`
+  argument JavaScript's `StateFieldSpec` passes.** This was already
+  called out as a fixed simplification, but it is worth confirming in
+  practice: JSON (de)serialization strategies that need to consult other
+  fields of the state they are attached to (a common pattern — e.g.
+  resolving IDs against a companion field) simply cannot be expressed
+  through this binding and have to fall back to `Jv.t`-level escape
+  hatches.
+- **The forward-type trick works cleanly for the six types DESIGN.md
+  calls out, but doesn't scale to every "module A's function returns
+  module B's abstract type where B is defined later" case.** For
+  `AnnotationType.t`/`StateEffectType.t`/`Range.t`/`RangeSet.t`, nothing
+  *before* their own module needs to name them, so they stay ordinary
+  module-local abstract types — no forward declaration needed. That's
+  fortunate rather than designed: had `EditorState`'s `field`/`facet`
+  (defined much earlier, needed by `Facet`/`StateField`) instead been
+  needed by, say, `ChangeDesc`, a much longer prefix of the file would
+  have had to move above `EditorState`, or more forward types would have
+  been needed. The convention scales to "a handful of central types
+  referenced everywhere", not to arbitrary mutual reference.
+- **Binding `EditorState.changeByRange` in the fixed style requires an
+  ad hoc record type** (`change_by_range_result`, not part of the fixed
+  signatures) declared at top level next to the forward types, purely so
+  the callback's return shape has a name. It is a fine solution, but it
+  is a second, quieter instance of the "declare something before its
+  natural home" pattern that the forward-type convention is meant to
+  handle explicitly — this one isn't called out anywhere, so a reader
+  has to notice it is there for the same reason.

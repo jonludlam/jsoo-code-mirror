@@ -1,7 +1,8 @@
 open Brr
 
 let () =
-  let state = Cm_state.EditorState.create ~doc:"linked" () in
+  let config = Cm_state.EditorStateConfig.create ~doc:"linked" () in
+  let state = Cm_state.EditorState.create ~config () in
   let view = Cm_view.EditorView.create ~state ~parent:(Document.body G.document) () in
   let s = Cm_view.EditorView.state view in
   let same_state_class =
