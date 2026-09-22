@@ -115,15 +115,33 @@ stated plainly: **in this layout the OCaml dependency graph must mirror
 the JavaScript one, including edges that carry no types.** Any package
 added later has to be checked for this.
 
+## What consuming it felt like
+
+The sixteen example pages were written against the finished bindings by
+people who had not written them, which is the only honest test of an
+interface. Their verdict was that translating a CodeMirror recipe into
+OCaml is direct: "flag lines over 40 characters and offer a fix",
+"highlight the word under the cursor", "complete differently after an @"
+all came out as the reference suggests, with no impedance mismatch.
+
+Four things were unclear enough to cost someone time, and are now
+documented where they were missed rather than in a guide nobody reads: a
+view plugin's update returns unit and mutates in place, unlike a state
+field's; `range` defaults to a point; a tag style's class needs the page
+to supply the rule; and resolving a syntax tree at a token boundary
+gives the node that ends there, which at position 0 is the document.
+
+The package split also did what it was for. Of sixteen pages, one needs
+only state, seven need state and view, five add one more package, and
+only three pull the umbrella in, because they want `basic_setup` or the
+theme.
+
 ## Still to do
 
-- **A future-to-promise helper.** Three packages have hand-rolled it, and
-  `autocomplete` needed the reverse direction as well. This one has
-  earned its place, unlike `Conv.callback`.
-- **`conv` on every bound type.** The conventions ask for it; `view` left
-  it off `KeyBinding`, which `autocomplete` then needed.
-- **`command_of_jv`** is duplicated in `search` and `autocomplete` and
-  belongs in `view`.
+- ~~A future-to-promise helper~~ and ~~`conv` on every bound type~~: both
+  done, in `Cm_state.Async` and on `KeyBinding`.
+- **`command_of_jv`** is duplicated in `search`, `autocomplete` and
+  `commands`, and belongs in `view`.
 - **Name the shapes the conventions do not cover**: a callback record
   like `StreamParser`, a write-only config field, a repeated callback
   type that earns an alias, and JavaScript subclassing (`LRLanguage`
@@ -131,6 +149,26 @@ added later has to be checked for this.
   the conventions name.
 - **`state.mli` exists now, but `Conv`'s `invalid` and the `dep` type
   still read as plumbing.** Worth a second pass.
+
+## What this says about the upstreaming branch
+
+The four commits prepared for `patricoferris/jsoo-code-mirror` were the
+reason for all of this, and the exercise supports them. The transaction
+spec split is the decision that most needed testing: six packages later
+nothing has wanted the two merged, and it is what lets
+`Compartment.reconfigure` compose with changes in one spec.
+`EditorState.update` had no caller when it was added and now has one.
+The placements — compartments in state, widget types as their own
+module, line numbers as a function of the view package — match what the
+whole library turned out to want.
+
+It also found three gaps in upstream main that the branch does not
+introduce but that anyone building on it meets next: a facet cannot be
+defined, only wrapped; `EditorState` cannot read a facet's value; and
+there is no way to name an effect type, annotation type or state field
+that CodeMirror itself defines. The last is the one that forced
+`Obj.magic` here, and it blocks the very port the branch exists to
+enable, so it is worth raising alongside it.
 
 ## Things that are CodeMirror, not us
 
