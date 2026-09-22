@@ -1,6 +1,12 @@
 ; code-mirror.commands: bindings to the CodeMirror package this directory is named
 ; after, with that package's JavaScript bundle. See CONVENTIONS.md.
 
+; @codemirror/commands' own JS bundle needs @codemirror/language's global
+; (__CM__language) set at run time, for the indentation commands (see
+; js/shims/codemirror-language.js and DESIGN.md's friction notes); depending
+; on cm_language below makes dune link its bundle.js in too, even though no
+; value in this library's .ml/.mli mentions a Cm_language type.
+
 (library
  (name cm_commands)
  (public_name code-mirror.commands)

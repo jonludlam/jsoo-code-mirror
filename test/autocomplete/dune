@@ -1,0 +1,8 @@
+(executable
+ (name autocomplete)
+ (modes js)
+ (libraries brr cm_state cm_view cm_language cm_autocomplete))
+
+(alias
+ (name all)
+ (deps index.html))
