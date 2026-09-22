@@ -1,7 +1,7 @@
 (executable
  (name index)
  (modes js)
- (libraries brr code-mirror.state code-mirror.view))
+ (libraries brr cm_state cm_view cm_autocomplete))
 
 (alias
  (name all)
