@@ -21,7 +21,16 @@ module Conv = struct
     { to_jv = M.to_jv; of_jv = M.of_jv }
 
   let invalid name (_ : Jv.t) = invalid_arg name
+end
 
+module Async = struct
+  let promise_of_fut encode fut =
+    Fut.to_promise ~ok:Fun.id (Fut.map (fun v -> Ok (encode v)) fut)
+
+  let fut_of_promise decode p =
+    let fut, set = Fut.create () in
+    Jv.Promise.await p (fun v -> set (decode v));
+    fut
 end
 
 (* Forward declarations, equated inside the modules below. *)
