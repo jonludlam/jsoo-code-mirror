@@ -1,4 +1,27 @@
+; code-mirror.autocomplete: bindings to the CodeMirror package this directory is named
+; after, with that package's JavaScript bundle. See CONVENTIONS.md.
+
 (library
- (name autocomplete)
+ (name cm_autocomplete)
  (public_name code-mirror.autocomplete)
- (libraries code-mirror))
+ (libraries brr cm_state cm_view cm_language)
+ (js_of_ocaml
+  (javascript_files bundle.js)))
+
+; bundle.js is generated from js/entries/autocomplete.js and committed, so users
+; need no node. Regenerate with `dune build --profile=with-bundle`
+; after `npm install`.
+
+(rule
+ (target bundle.js)
+ (mode promote)
+ (enabled_if
+  (= %{profile} with-bundle))
+ (deps
+  %{project_root}/js/build.sh
+  (source_tree %{project_root}/js)
+  (source_tree %{project_root}/node_modules))
+ (action
+  (chdir
+   %{project_root}
+   (run sh js/build.sh js/entries/autocomplete.js %{target}))))
