@@ -7,7 +7,7 @@
 open Code_mirror
 open Brr
 
-let basic_setup = Jv.get Jv.global "__CM__basic_setup" |> Extension.of_jv
+let basic_setup = Code_mirror.basic_setup
 let numbers = State.Compartment.make ()
 let wrapping = State.Compartment.make ()
 let offset = ref 0

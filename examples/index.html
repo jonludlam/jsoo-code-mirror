@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>jsoo-code-mirror examples</title>
+<style>
+ body { font: 15px/1.5 system-ui, sans-serif; max-width: 44em; margin: 3em auto; padding: 0 1em; }
+ h1 { font-size: 1.4em; }
+ dt { margin-top: 1em; font-weight: 600; }
+ dd { margin: 0.2em 0 0 1.5em; color: #444; }
+ code { background: #f4f4f4; padding: 0 0.3em; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>jsoo-code-mirror examples</h1>
+<p>Each page is one <code>.ml</code> file in <code>examples/</code>, built
+against the smallest set of libraries it needs. Serve this directory from
+<code>_build/default/examples</code>.</p>
+
+<dl>
+ <dt><a href="ocaml/index.html">ocaml</a></dt>
+ <dd>An OCaml editor: the legacy mode, One Dark, and the standard setup. What embedding one actually looks like.</dd>
+
+ <dt><a href="language/index.html">language</a></dt>
+ <dd>A stream parser written by hand, a highlight style over its tags, and walking the syntax tree.</dd>
+
+ <dt><a href="commands/index.html">commands</a></dt>
+ <dd>The default key bindings, history, undo and redo, indentation and commenting.</dd>
+
+ <dt><a href="autocomplete/index.html">autocomplete</a></dt>
+ <dd>Completion from a list and from a source of our own, bracket closing, a snippet.</dd>
+
+ <dt><a href="lint/index.html">lint</a></dt>
+ <dd>A linter over the document, with the gutter and the diagnostics panel.</dd>
+
+ <dt><a href="search/index.html">search</a></dt>
+ <dd>The search panel, find and replace, and highlighting the selection's matches.</dd>
+
+ <dt><a href="highlight/index.html">highlight</a></dt>
+ <dd>Underlining the selection: a state field of decorations updated by an effect.</dd>
+
+ <dt><a href="widgets/index.html">widgets</a></dt>
+ <dd>Block widgets drawn in the document, keeping their place as the text above them changes.</dd>
+
+ <dt><a href="compartment/index.html">compartment</a></dt>
+ <dd>Swapping parts of the configuration at run time: the line-number gutter and line wrapping.</dd>
+
+ <dt><a href="gutter/index.html">gutter</a></dt>
+ <dd>A gutter of our own beside the line numbers, with markers from a range set.</dd>
+
+ <dt><a href="tooltip/index.html">tooltip</a></dt>
+ <dd>A hover tooltip showing what is under the pointer.</dd>
+
+ <dt><a href="view_plugin/index.html">view_plugin</a></dt>
+ <dd>A view plugin maintaining decorations as the viewport moves.</dd>
+
+ <dt><a href="panel/index.html">panel</a></dt>
+ <dd>A panel below the editor, toggled by a key binding.</dd>
+
+ <dt><a href="theme/index.html">theme</a></dt>
+ <dd>Stacking themes: One Dark, with one of our own on top.</dd>
+
+ <dt><a href="selection/index.html">selection</a></dt>
+ <dd>Changing the document and the selection in one transaction.</dd>
+
+ <dt><a href="headless/index.html">headless</a></dt>
+ <dd>An editor state with no editor: transactions applied and read with no page at all.</dd>
+</dl>
+</body>
+</html>
