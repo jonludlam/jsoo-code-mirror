@@ -19,9 +19,9 @@ let _ =
     init ~doc:"This doesn't have an asterisk in initially\nSome more text\n"
       ~exts:[] ()
   in
-  let selection = State.Transaction.Short { anchor = 10; head = Some 20 } in
+  let selection = State.TransactionSpec.Short { anchor = 10; head = Some 20 } in
   let transaction =
-    State.Transaction.create ~selection
+    State.TransactionSpec.create ~selection
       ~changes:{ from = 10; insert = Some "*"; to_ = None }
       ()
   in

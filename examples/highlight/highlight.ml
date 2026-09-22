@@ -84,7 +84,7 @@ let underline_selection view =
           Console.log [ Jv.of_string "adding underline fields and theme" ];
           x :: effects
       in
-      View.EditorView.dispatch view (State.Transaction.create ~effects ());
+      View.EditorView.dispatch view (State.TransactionSpec.create ~effects ());
       true
 
 let keymap = Keymap.create ~key:"F1" ~run:underline_selection ()
@@ -110,7 +110,7 @@ let _ =
       ~exts:[] ()
   in
   (* let transaction =
-    State.Transaction.create 
+    State.TransactionSpec.create
       ~effects:[State.StateEffect.of_ add_underline { from = 10; to_ = 20 }]
       ()
   in

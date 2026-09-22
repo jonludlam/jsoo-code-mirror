@@ -49,7 +49,7 @@ let _ =
   let run v =
     let cur = State.EditorState.field (View.EditorView.state v) help_state in
     let eff = State.StateEffect.of_ toggleHelp (not cur) in
-    let transaction = State.Transaction.create ~effects:[ eff ] () in
+    let transaction = State.TransactionSpec.create ~effects:[ eff ] () in
     View.EditorView.dispatch v transaction;
     true
   in
