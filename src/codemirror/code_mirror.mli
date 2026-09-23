@@ -15,6 +15,7 @@ module Commands = Cm_commands
 module Autocomplete = Cm_autocomplete
 module Lint = Cm_lint
 module Search = Cm_search
+module Collab = Cm_collab
 module Legacy_modes = Cm_legacy_modes
 module Theme_one_dark = Cm_theme_one_dark
 

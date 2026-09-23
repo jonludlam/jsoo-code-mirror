@@ -28,6 +28,28 @@ Roughly 3,600 lines of interface over 6,000 of implementation, and every
 export of state, view, commands, autocomplete, lint and search is bound.
 Language leaves the parser-generator internals alone, deliberately.
 
+## Which packages, and which not
+
+The package list was chosen, not derived, and the choice was not
+complete. Checked against npm afterwards, CodeMirror's own first-party
+packages are:
+
+- **Bound**: state, view, language, commands, autocomplete, lint,
+  search, legacy-modes, theme-one-dark, collab, and the `codemirror`
+  meta-package.
+- **Not bound**: `language-data`, the registry of language descriptions
+  (our `LanguageDescription` is the type it supplies data for);
+  `merge`, the side-by-side diff and merge view; and the seven
+  `lang-*` grammar packages (javascript, html, css, markdown, python,
+  json, xml), each of which exports one `LanguageSupport` and would all
+  follow the same one-page pattern.
+
+`collab` was missed on the first pass and only surfaced when the
+bindings were compared against CodeMirror's own examples page, which
+has a collaborative-editing example. Comparing against what upstream
+documents, rather than against a list of one's own, is the cheap check
+that would have caught it sooner.
+
 ## The conventions that held
 
 - **One library and one bundle per npm package.** Each bundle sets one

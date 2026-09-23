@@ -7,7 +7,7 @@ set -e
 entry=$1; out=$2
 name=$(basename "$entry" .js)
 aliases=""
-for pkg in state view language commands autocomplete lint search; do
+for pkg in state view language commands autocomplete lint search collab; do
   [ "$pkg" = "$name" ] && continue
   aliases="$aliases --alias:@codemirror/$pkg=./js/shims/codemirror-$pkg.js"
 done
