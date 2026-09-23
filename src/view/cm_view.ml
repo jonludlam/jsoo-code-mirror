@@ -342,6 +342,13 @@ module EditorView = struct
   let dispatch t (spec : TransactionSpec.t) =
     Jv.call t "dispatch" [| TransactionSpec.to_jv spec |] |> ignore
 
+  let set_doc t doc =
+    let length = Text.length (EditorState.doc (state t)) in
+    dispatch t
+      (TransactionSpec.create
+         ~changes:(ChangeSpec.replace ~from:0 ~to_:length ~insert:doc ())
+         ())
+
   let dispatch_all t (specs : TransactionSpec.t list) =
     Jv.call t "dispatch" (Array.of_list (List.map TransactionSpec.to_jv specs))
     |> ignore

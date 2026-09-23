@@ -205,6 +205,11 @@ module EditorView : sig
   val state : t -> EditorState.t
   val set_state : t -> EditorState.t -> unit
   val dispatch : t -> TransactionSpec.t -> unit
+
+  val set_doc : t -> string -> unit
+  (** Not in CodeMirror: [set_doc view doc] dispatches one transaction replacing
+      the whole document with [doc]. *)
+
   val dispatch_all : t -> TransactionSpec.t list -> unit
   val dispatch_transaction : t -> Transaction.t -> unit
   val update : t -> Transaction.t list -> unit
