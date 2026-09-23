@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>collab</title>
+    <style>
+        #editors { display: flex; gap: 1em; }
+        #editors>div { flex: 1; min-width: 0; }
+        #editors h2 { font: 600 0.9em system-ui, sans-serif; margin: 0 0 0.3em; }
+        .cm-editor { border: 1px solid #ccc; }
+    </style>
+</head>
+
+<body>
+    <p>Two independent editors sharing one document through
+        <code>collab</code>: type in either one and the change appears in
+        the other, carried by an in-page "authority" standing in for a
+        server.</p>
+    <script type="module" src="index.bc.js"></script>
+</body>
+
+</html>
