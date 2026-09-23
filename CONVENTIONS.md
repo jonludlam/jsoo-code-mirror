@@ -17,6 +17,7 @@ that package and nothing else:
 | @codemirror/autocomplete | code-mirror.autocomplete   | Cm_autocomplete     | __CM__autocomplete   |
 | @codemirror/lint         | code-mirror.lint           | Cm_lint             | __CM__lint           |
 | @codemirror/search       | code-mirror.search         | Cm_search           | __CM__search         |
+| @codemirror/collab       | code-mirror.collab         | Cm_collab           | __CM__collab         |
 | @codemirror/legacy-modes | code-mirror.legacy-modes   | Cm_legacy_modes     | __CM__legacy_modes   |
 | @codemirror/theme-one-dark | code-mirror.theme-one-dark | Cm_theme_one_dark | __CM__theme_one_dark |
 | codemirror               | code-mirror                | Code_mirror         | __CM__codemirror     |
