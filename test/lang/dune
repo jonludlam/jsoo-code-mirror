@@ -1,0 +1,15 @@
+(executable
+ (name lang)
+ (modes js)
+ (libraries
+  brr
+  code-mirror.state
+  code-mirror.language
+  code-mirror.lang-css
+  code-mirror.lang-javascript
+  code-mirror.lang-html
+  code-mirror.lang-python))
+
+(alias
+ (name all)
+ (deps index.html))

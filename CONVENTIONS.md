@@ -20,7 +20,14 @@ that package and nothing else:
 | @codemirror/collab       | code-mirror.collab         | Cm_collab           | __CM__collab         |
 | @codemirror/legacy-modes | code-mirror.legacy-modes   | Cm_legacy_modes     | __CM__legacy_modes   |
 | @codemirror/theme-one-dark | code-mirror.theme-one-dark | Cm_theme_one_dark | __CM__theme_one_dark |
+| @codemirror/lang-css | code-mirror.lang-css | Cm_lang_css | __CM__lang_css, __CM__lezer_css |
+| @codemirror/lang-javascript | code-mirror.lang-javascript | Cm_lang_javascript | __CM__lang_javascript, __CM__lezer_javascript |
+| @codemirror/lang-html | code-mirror.lang-html | Cm_lang_html | __CM__lang_html, __CM__lezer_html |
+| @codemirror/lang-python | code-mirror.lang-python | Cm_lang_python | __CM__lang_python, __CM__lezer_python |
 | codemirror               | code-mirror                | Code_mirror         | __CM__codemirror     |
+
+A language package's bundle also carries the Lezer parser it is built on
+(`@lezer/javascript` in `lang-javascript`), exposed as its `parser`.
 
 `Code_mirror` re-exports every module (`module State = Cm_state`, ...) and
 binds `basicSetup`/`minimalSetup`; depending on it links everything, as the
