@@ -41,7 +41,7 @@ module ViewUpdate : sig
   val start_state : t -> EditorState.t
   val changes : t -> ChangeSet.t
   val transactions : t -> Transaction.t list
-  val view_changed : t -> bool
+  val viewport_changed : t -> bool
   val height_changed : t -> bool
   val geometry_changed : t -> bool
   val focus_changed : t -> bool
@@ -375,17 +375,9 @@ implementing the full package on top of the fixed signatures and
   package's types as fully abstract, even the ones that happen to be
   `Jv.t` underneath" would have saved a full pass of build-error-driven
   fixes across this file.
-- **Two of the fixed `ViewUpdate` field names don't match CodeMirror's
-  own property names, without a comment saying so.** The fixed
-  signature's `view_changed`/`height_changed`/... map to
-  `ViewUpdate.viewportChanged`/`heightChanged`/..., i.e. `view_changed`
-  is `viewportChanged` with "port" dropped — a deliberate-looking
-  shortening, but nothing marks it as intentional versus a slip, and the
-  fixed signature also has no `viewport_moved` for `ViewUpdate
-  .viewportMoved` (added here as a plain extension, following the "bind
-  the rest in the same style" instruction). A one-line note next to
-  `view_changed` doc comment would remove the ambiguity for the next
-  reader.
+- **The fixed `ViewUpdate` signature had no `viewport_moved`** for
+  `ViewUpdate.viewportMoved`; it is added here as a plain extension,
+  following the "bind the rest in the same style" instruction.
 - **Not-bound items worth calling out beyond the .mli's own list**:
   `MouseSelectionStyle`/`dragMovesSelection`/`clickAddsSelectionRange`/
   `bidiIsolatedRanges`/`perLineTextDirection`/`cspNonce`/

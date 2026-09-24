@@ -46,7 +46,7 @@ module ViewUpdate : sig
   val start_state : t -> EditorState.t
   val changes : t -> ChangeSet.t
   val transactions : t -> Transaction.t list
-  val view_changed : t -> bool
+  val viewport_changed : t -> bool
   val viewport_moved : t -> bool
   val height_changed : t -> bool
   val geometry_changed : t -> bool
