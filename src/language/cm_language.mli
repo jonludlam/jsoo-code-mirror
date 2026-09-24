@@ -69,6 +69,41 @@ module NodeType : sig
   val is_isolate : t -> [ `Rtl | `Ltr | `Auto ] option
 end
 
+(** {{:https://lezer.codemirror.net/docs/ref/#common.TreeCursor}
+     common.TreeCursor}: a mutable pointer into a tree. The movement functions
+    return [false], leaving the cursor where it was, when there is nowhere to
+    go. *)
+module TreeCursor : sig
+  type t
+
+  include Jv.CONV with type t := t
+
+  val name : t -> string
+  val from : t -> int
+  val to_ : t -> int
+  val type_ : t -> node_type
+
+  val node : t -> syntax_node
+  (** A stable node for the cursor's current position. *)
+
+  val first_child : t -> bool
+  val last_child : t -> bool
+  val next_sibling : t -> bool
+  val prev_sibling : t -> bool
+  val parent : t -> bool
+  val next : ?enter:bool -> t -> bool
+  val prev : ?enter:bool -> t -> bool
+
+  val iterate :
+    t ->
+    enter:(syntax_node -> bool) ->
+    ?leave:(syntax_node -> unit) ->
+    unit ->
+    unit
+  (** Visits the cursor's node and everything below it, as {!Tree.iterate} does.
+  *)
+end
+
 (** {{:https://lezer.codemirror.net/docs/ref/#common.Tree} common.Tree}. Node
     data ([children]/[positions]), [Tree.build] and [TreeBuffer] are not bound;
     see "Not bound". *)
@@ -107,6 +142,9 @@ module Tree : sig
       implicit return). *)
 
   val empty : t
+
+  val cursor : ?mode:int -> t -> TreeCursor.t
+  (** [mode] is JavaScript's [IterMode] bitmask; see {!SyntaxNode.enter}. *)
 end
 
 (** {{:https://lezer.codemirror.net/docs/ref/#common.SyntaxNode}
@@ -271,9 +309,55 @@ module NodePropSource : sig
   val conv : t Conv.t
 end
 
+(** {{:https://lezer.codemirror.net/docs/ref/#common.Input} common.Input}: the
+    text a parser reads, as handed to a {!parse_mixed} callback. *)
+module Input : sig
+  type t
+
+  include Jv.CONV with type t := t
+
+  val length : t -> int
+  val read : t -> from:int -> to_:int -> string
+end
+
+(** {{:https://lezer.codemirror.net/docs/ref/#common.NestedParse}
+     common.NestedParse}: what a {!parse_mixed} callback returns for a node
+    whose content another parser should parse. *)
+module NestedParse : sig
+  type t
+
+  include Jv.CONV with type t := t
+
+  type overlay =
+    [ `Ranges of (int * int) list
+      (** parse only these ranges, as one document *)
+    | `Nodes of syntax_node -> bool
+      (** parse the children for which the function is [true] *)
+    | `Node_ranges of syntax_node -> (int * int) option
+      (** or a range within each child *) ]
+
+  val create : ?overlay:overlay -> ?bracketed:bool -> Parser.t -> t
+  (** Without [overlay], the node's whole content is parsed. *)
+end
+
+(** {{:https://lezer.codemirror.net/docs/ref/#common.ParseWrapper}
+     common.ParseWrapper}, as {!parse_mixed} makes and {!ParserConfig.create}'s
+    [wrap] takes. *)
+module ParseWrapper : sig
+  type t
+
+  include Jv.CONV with type t := t
+end
+
+val parse_mixed :
+  (syntax_node -> Input.t -> NestedParse.t option) -> ParseWrapper.t
+(** {{:https://lezer.codemirror.net/docs/ref/#common.parseMixed}
+     common.parseMixed}: a wrapper that hands the content of some nodes to
+    another parser. The callback sees every node; [None] leaves it alone. *)
+
 (** {{:https://lezer.codemirror.net/docs/ref/#lr.ParserConfig} lr.ParserConfig}.
-    [tokenizers]/[specializers]/[contextTracker]/[wrap] are not bound; see "Not
-    bound". *)
+    [tokenizers]/[specializers]/[contextTracker] are not bound; see "Not bound".
+*)
 module ParserConfig : sig
   type t
 
@@ -287,6 +371,7 @@ module ParserConfig : sig
     ?dialect:string ->
     ?strict:bool ->
     ?buffer_length:int ->
+    ?wrap:ParseWrapper.t ->
     unit ->
     t
 end
@@ -530,8 +615,13 @@ val indent_range : EditorState.t -> from:int -> to_:int -> ChangeSet.t
 
 val indent_node_prop : NodeProp.t
 (** {{:https://codemirror.net/docs/ref/#language.indentNodeProp}
-     language.indentNodeProp}. Attaching a strategy to a custom node type is not
-    bound; see "Not bound". *)
+     language.indentNodeProp} *)
+
+val indent_node_prop_add :
+  (string * (TreeIndentContext.t -> indent_result)) list -> NodePropSource.t
+(** [indentNodeProp.add]: indentation strategies for the named node types (a
+    name can list several, space-separated), for {!ParserConfig.create}'s
+    [props]. *)
 
 val delimited_indent :
   closing:string ->
@@ -756,8 +846,14 @@ val fold_service :
 
 val fold_node_prop : NodeProp.t
 (** {{:https://codemirror.net/docs/ref/#language.foldNodeProp}
-     language.foldNodeProp}. Attaching a strategy to a custom node type is not
-    bound; see "Not bound". *)
+     language.foldNodeProp} *)
+
+val fold_node_prop_add :
+  (string * (syntax_node -> EditorState.t -> (int * int) option)) list ->
+  NodePropSource.t
+(** [foldNodeProp.add]: folding strategies for the named node types. A strategy
+    returns the range to fold; [fun node _ -> fold_inside node] is JavaScript's
+    plain [foldInside]. *)
 
 val fold_inside : syntax_node -> (int * int) option
 (** {{:https://codemirror.net/docs/ref/#language.foldInside}
@@ -862,30 +958,25 @@ val bidi_isolates : ?always_isolate:bool -> unit -> Extension.t
 
 (** Not bound:
 
-    - [ParseContext], [DocInput], [TreeFragment], [PartialParse], the [Input]
-      interface, [parseMixed]/[NestedParse]: the machinery for writing a
-      brand-new incremental [Parser]/[Language] integrated with CodeMirror's
-      background parse scheduler. {!StreamLanguage} and {!LRLanguage} cover the
-      paths this binding's consumers actually take (wrapping a stream-style
-      tokenizer, or installing a pre-built [\@lezer/generator] parser); building
-      the scheduler integration itself is out of scope.
-    - [NodeProp.define]/[NodeProp.add], and so anything that attaches a strategy
-      to a *custom* node type via a node prop ([indentNodeProp], [foldNodeProp],
-      [sublanguageProp], [bracketMatchingHandle] as *write* targets,
-      [NodeType.define]'s [props]): the value type of a custom prop is only
-      known by convention, and expressing "a typed prop, generically" needs
-      machinery this binding's [Conv.t] style does not reach for cheaply. The
-      library's own predefined instances are still read, via {!NodeProp.t} and
-      {!NodeType.prop}.
+    - [ParseContext], [DocInput], [TreeFragment], [PartialParse]: the machinery
+      for writing a brand-new incremental [Parser] integrated with CodeMirror's
+      background parse scheduler. {!StreamLanguage}, {!LRLanguage} and
+      {!parse_mixed} cover wrapping a tokenizer, installing a
+      [\@lezer/generator] parser, and nesting one parser in another.
+    - [NodeProp.define], and [NodeProp.add] beyond {!fold_node_prop_add} and
+      {!indent_node_prop_add} ([sublanguageProp], [bracketMatchingHandle] as
+      write targets, [NodeType.define]'s [props]): the value type of a custom
+      prop is only known by convention. The library's own predefined instances
+      are read via {!NodeProp.t} and {!NodeType.prop}.
     - [Sublanguage] construction: needs the same [NodeProp.add] machinery; only
       {!sublanguage_prop}, the raw prop constant, is exposed.
-    - [TreeCursor], [NodeWeakMap], [Tree.build], [TreeBuffer], [BufferCursor],
+    - [NodeWeakMap], [Tree.build], [TreeBuffer], [BufferCursor],
       [NodeSet]/[NodeSet.extend], [MountedTree] construction: the low-level
       tree-representation API used by parser generators and custom [Parser]s,
       not by consumers of an already-built parser.
     - [ContextTracker], [ExternalTokenizer], [InputStream], [Stack],
       [LocalTokenGroup], and so [ParserConfig]'s [tokenizers]/
-      [specializers]/[contextTracker]/[wrap]: LR-parser internals used only when
+      [specializers]/[contextTracker]: LR-parser internals used only when
       hand-writing a new grammar with external tokenizers; consumers of this
       binding use an already-generated [LRParser].
     - [LRParser.deserialize]: internal, used only by [\@lezer/generator]'s own

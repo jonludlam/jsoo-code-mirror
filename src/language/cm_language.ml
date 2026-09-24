@@ -109,6 +109,52 @@ module NodeType = struct
         | s -> Conv.invalid "NodeType.is_isolate" (Jv.of_string s))
 end
 
+(* JavaScript's [iterate] callbacks get a [SyntaxNodeRef]; they are
+   handed its stable [.node]. *)
+let iterate_spec ~enter ?leave () =
+  let o = Jv.obj [||] in
+  let enter_wrapped (n : Jv.t) = Jv.of_bool (enter (Jv.get n "node")) in
+  Jv.set o "enter" (Jv.callback ~arity:1 enter_wrapped);
+  Option.iter
+    (fun f ->
+      let leave_wrapped (n : Jv.t) =
+        f (Jv.get n "node");
+        Jv.undefined
+      in
+      Jv.set o "leave" (Jv.callback ~arity:1 leave_wrapped))
+    leave;
+  o
+
+module TreeCursor = struct
+  type t = Jv.t
+
+  include (Jv.Id : Jv.CONV with type t := t)
+
+  let name t = Jv.to_string (Jv.get t "name")
+  let from t = Jv.Int.get t "from"
+  let to_ t = Jv.Int.get t "to"
+  let type_ t : node_type = Jv.get t "type"
+  let node t : syntax_node = Jv.get t "node"
+  let move m t = Jv.to_bool (Jv.call t m [||])
+  let first_child = move "firstChild"
+  let last_child = move "lastChild"
+  let next_sibling = move "nextSibling"
+  let prev_sibling = move "prevSibling"
+  let parent = move "parent"
+
+  let step m ?enter t =
+    Jv.to_bool
+      (Jv.call t m
+         (match enter with None -> [||] | Some e -> [| Jv.of_bool e |]))
+
+  let next = step "next"
+  let prev = step "prev"
+
+  let iterate t ~enter ?leave () =
+    let o = iterate_spec ~enter ?leave () in
+    Jv.call t "iterate" [| Jv.get o "enter"; Jv.get o "leave" |] |> ignore
+end
+
 module Tree = struct
   type t = tree
 
@@ -146,6 +192,10 @@ module Tree = struct
     Jv.call t "iterate" [| o |] |> ignore
 
   let empty = Jv.get (Lazy.force tree_cls) "empty"
+
+  let cursor ?mode t : TreeCursor.t =
+    Jv.call t "cursor"
+      (match mode with None -> [||] | Some m -> [| Jv.of_int m |])
 end
 
 module SyntaxNode = struct
@@ -319,6 +369,59 @@ module NodePropSource = struct
   let conv = Conv.{ to_jv; of_jv }
 end
 
+module Input = struct
+  type t = Jv.t
+
+  include (Jv.Id : Jv.CONV with type t := t)
+
+  let length t = Jv.Int.get t "length"
+
+  let read t ~from ~to_ =
+    Jv.to_string (Jv.call t "read" [| Jv.of_int from; Jv.of_int to_ |])
+end
+
+module NestedParse = struct
+  type t = Jv.t
+
+  include (Jv.Id : Jv.CONV with type t := t)
+
+  type overlay =
+    [ `Ranges of (int * int) list
+    | `Nodes of syntax_node -> bool
+    | `Node_ranges of syntax_node -> (int * int) option ]
+
+  let range (from, to_) =
+    Jv.obj [| ("from", Jv.of_int from); ("to", Jv.of_int to_) |]
+
+  let overlay_to_jv : overlay -> Jv.t = function
+    | `Ranges rs -> Jv.of_list range rs
+    | `Nodes f ->
+        Jv.callback ~arity:1 (fun n -> Jv.of_bool (f (Jv.get n "node")))
+    | `Node_ranges f ->
+        Jv.callback ~arity:1 (fun n ->
+            match f (Jv.get n "node") with
+            | Some r -> range r
+            | None -> Jv.false')
+
+  let create ?overlay ?bracketed (parser : Parser.t) : t =
+    let o = Jv.obj [| ("parser", Parser.to_jv parser) |] in
+    Jv.set_if_some o "overlay" (Option.map overlay_to_jv overlay);
+    Jv.Bool.set_if_some o "bracketed" bracketed;
+    o
+end
+
+module ParseWrapper = struct
+  type t = Jv.t
+
+  include (Jv.Id : Jv.CONV with type t := t)
+end
+
+let parse_mixed f : ParseWrapper.t =
+  let nest (n : Jv.t) (input : Jv.t) =
+    match f (Jv.get n "node") input with Some p -> p | None -> Jv.null
+  in
+  Jv.call (Lazy.force lezer_common) "parseMixed" [| Jv.callback ~arity:2 nest |]
+
 module ParserConfig = struct
   type t = Jv.t
 
@@ -326,8 +429,9 @@ module ParserConfig = struct
 
   let conv = Conv.{ to_jv; of_jv }
 
-  let create ?props ?top ?dialect ?strict ?buffer_length () : t =
+  let create ?props ?top ?dialect ?strict ?buffer_length ?wrap () : t =
     let o = Jv.obj [||] in
+    Jv.set_if_some o "wrap" (Option.map ParseWrapper.to_jv wrap);
     Option.iter
       (fun l -> Jv.set o "props" (Jv.of_list NodePropSource.to_jv l))
       props;
@@ -961,6 +1065,34 @@ let fold_service :
 let fold_inside (node : syntax_node) : (int * int) option =
   let r = Jv.call (Lazy.force pkg) "foldInside" [| node |] in
   if Jv.is_null r then None else Some (pos_pair r)
+
+let fold_node_prop_add strategies : NodePropSource.t =
+  let strategy f =
+    Jv.callback ~arity:2 (fun node state ->
+        match f node state with
+        | Some (from, to_) ->
+            Jv.obj [| ("from", Jv.of_int from); ("to", Jv.of_int to_) |]
+        | None -> Jv.null)
+  in
+  Jv.call fold_node_prop "add"
+    [|
+      Jv.obj
+        (Array.of_list (List.map (fun (n, f) -> (n, strategy f)) strategies));
+    |]
+
+let indent_node_prop_add strategies : NodePropSource.t =
+  let strategy f =
+    Jv.callback ~arity:1 (fun cx ->
+        match f cx with
+        | `Indent n -> Jv.of_int n
+        | `None -> Jv.null
+        | `Defer -> Jv.undefined)
+  in
+  Jv.call indent_node_prop "add"
+    [|
+      Jv.obj
+        (Array.of_list (List.map (fun (n, f) -> (n, strategy f)) strategies));
+    |]
 
 let foldable (state : EditorState.t) ~line_start ~line_end : (int * int) option
     =
