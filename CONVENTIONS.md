@@ -18,6 +18,7 @@ that package and nothing else:
 | @codemirror/lint         | code-mirror.lint           | Cm_lint             | __CM__lint           |
 | @codemirror/search       | code-mirror.search         | Cm_search           | __CM__search         |
 | @codemirror/collab       | code-mirror.collab         | Cm_collab           | __CM__collab         |
+| @codemirror/lsp-client   | code-mirror.lsp-client     | Cm_lsp_client       | __CM__lsp_client     |
 | @codemirror/legacy-modes | code-mirror.legacy-modes   | Cm_legacy_modes     | __CM__legacy_modes   |
 | @codemirror/theme-one-dark | code-mirror.theme-one-dark | Cm_theme_one_dark | __CM__theme_one_dark |
 | @codemirror/lang-css | code-mirror.lang-css | Cm_lang_css | __CM__lang_css, __CM__lezer_css |

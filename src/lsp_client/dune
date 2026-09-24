@@ -1,14 +1,14 @@
-; code-mirror: bindings to the CodeMirror package this directory is named
+; code-mirror.lsp-client: bindings to the CodeMirror package this directory is named
 ; after, with that package's JavaScript bundle. See CONVENTIONS.md.
 
 (library
- (name code_mirror)
- (public_name code-mirror)
- (libraries brr cm_state cm_view cm_language cm_commands cm_autocomplete cm_lint cm_search cm_collab cm_lsp_client cm_legacy_modes cm_theme_one_dark)
+ (name cm_lsp_client)
+ (public_name code-mirror.lsp-client)
+ (libraries brr cm_state cm_view cm_language cm_autocomplete cm_lint)
  (js_of_ocaml
   (javascript_files bundle.js)))
 
-; bundle.js is generated from js/entries/codemirror.js and committed, so users
+; bundle.js is generated from js/entries/lsp_client.js and committed, so users
 ; need no node. Regenerate with `dune build --profile=with-bundle`
 ; after `npm install`.
 
@@ -24,4 +24,4 @@
  (action
   (chdir
    %{project_root}
-   (run sh js/build.sh js/entries/codemirror.js %{target}))))
+   (run sh js/build.sh js/entries/lsp_client.js %{target}))))

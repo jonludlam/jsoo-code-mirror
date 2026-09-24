@@ -35,8 +35,8 @@ complete. Checked against npm afterwards, CodeMirror's own first-party
 packages are:
 
 - **Bound**: state, view, language, commands, autocomplete, lint,
-  search, legacy-modes, theme-one-dark, collab, and the `codemirror`
-  meta-package.
+  search, legacy-modes, theme-one-dark, collab, lsp-client, and the
+  `codemirror` meta-package.
 - **Not bound**: `language-data`, the registry of language descriptions
   (our `LanguageDescription` is the type it supplies data for);
   `merge`, the side-by-side diff and merge view; and the seven
@@ -48,7 +48,9 @@ packages are:
 bindings were compared against CodeMirror's own examples page, which
 has a collaborative-editing example. Comparing against what upstream
 documents, rather than against a list of one's own, is the cheap check
-that would have caught it sooner.
+that would have caught it sooner. `lsp-client` was missed the same
+way, and added when merlin-js, which talks to an OCaml language
+server through it, moved onto these bindings.
 
 ## The conventions that held
 

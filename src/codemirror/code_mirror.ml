@@ -6,6 +6,7 @@ module Autocomplete = Cm_autocomplete
 module Lint = Cm_lint
 module Search = Cm_search
 module Collab = Cm_collab
+module Lsp_client = Cm_lsp_client
 module Legacy_modes = Cm_legacy_modes
 module Theme_one_dark = Cm_theme_one_dark
 
