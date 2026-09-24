@@ -1,10 +1,27 @@
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -224,7 +241,7 @@
   var pickedCompletion = /* @__PURE__ */ import_state.Annotation.define();
   function insertCompletionText(state, text, from, to) {
     let { main } = state.selection, fromOff = from - main.from, toOff = to - main.from;
-    return Object.assign(Object.assign({}, state.changeByRange((range) => {
+    return __spreadProps(__spreadValues({}, state.changeByRange((range) => {
       if (range != main && from != to && state.sliceDoc(range.from + fromOff, range.from + toOff) != state.sliceDoc(from, to))
         return { range };
       let lines = state.toText(text);
@@ -232,7 +249,10 @@
         changes: { from: range.from + fromOff, to: to == main.from ? range.to : range.from + toOff, insert: lines },
         range: import_state.EditorSelection.cursor(range.from + fromOff + lines.length)
       };
-    })), { scrollIntoView: true, userEvent: "input.complete" });
+    })), {
+      scrollIntoView: true,
+      userEvent: "input.complete"
+    });
   }
   var SourceCache = /* @__PURE__ */ new WeakMap();
   function asSource(source) {
@@ -399,7 +419,7 @@
         addToOptions: [],
         positionInfo: defaultPositionInfo,
         filterStrict: false,
-        compareCompletions: (a, b) => a.label.localeCompare(b.label),
+        compareCompletions: (a, b) => (a.sortText || a.label).localeCompare(b.sortText || b.label),
         interactionDelay: 75,
         updateSyncTime: 100
       }, {
@@ -450,6 +470,7 @@
       class: "cm-completionInfo-" + (narrow ? rtl ? "left-narrow" : "right-narrow" : left ? "left" : "right")
     };
   }
+  var setSelectedEffect = /* @__PURE__ */ import_state.StateEffect.define();
   function optionContent(config2) {
     let content = config2.addToOptions.slice();
     if (config2.icons)
@@ -505,8 +526,8 @@
       let off2 = Math.floor(selected / max);
       return { from: off2 * max, to: (off2 + 1) * max };
     }
-    let off = Math.floor((total - selected) / max);
-    return { from: total - (off + 1) * max, to: total - off * max };
+    let off = Math.ceil((total - selected) / max);
+    return { from: total - off * max, to: total - (off - 1) * max };
   }
   var CompletionTooltip = class {
     constructor(view, stateField, applyCompletion2) {
@@ -539,6 +560,13 @@
             this.applyCompletion(view, options2[+match[1]]);
             e.preventDefault();
             return;
+          }
+        }
+        if (e.target == this.list) {
+          let move = this.list.classList.contains("cm-completionListIncompleteTop") && e.clientY < this.list.firstChild.getBoundingClientRect().top ? this.range.from - 1 : this.list.classList.contains("cm-completionListIncompleteBottom") && e.clientY > this.list.lastChild.getBoundingClientRect().bottom ? this.range.to : null;
+          if (move != null) {
+            view.dispatch({ effects: setSelectedEffect.of(move) });
+            e.preventDefault();
           }
         }
       });
@@ -600,7 +628,8 @@
         this.range = rangeAroundSelected(open.options.length, open.selected, this.view.state.facet(completionConfig).maxRenderedOptions);
         this.showOptions(open.options, cState.id);
       }
-      if (this.updateSelectedOption(open.selected)) {
+      let newSel = this.updateSelectedOption(open.selected);
+      if (newSel) {
         this.destroyInfo();
         let { completion } = open.options[open.selected];
         let { info } = completion;
@@ -616,6 +645,7 @@
           }).catch((e) => (0, import_view.logException)(this.view.state, e, "completion info"));
         } else {
           this.addInfoPane(infoResult, completion);
+          newSel.setAttribute("aria-describedby", this.info.id);
         }
       }
     }
@@ -623,6 +653,7 @@
       this.destroyInfo();
       let wrap = this.info = document.createElement("div");
       wrap.className = "cm-tooltip cm-completionInfo";
+      wrap.id = "cm-completionInfo-" + Math.floor(Math.random() * 65535).toString(16);
       if (content.nodeType != null) {
         wrap.appendChild(content);
         this.infoDestroy = null;
@@ -645,8 +676,10 @@
             set = opt;
           }
         } else {
-          if (opt.hasAttribute("aria-selected"))
+          if (opt.hasAttribute("aria-selected")) {
             opt.removeAttribute("aria-selected");
+            opt.removeAttribute("aria-describedby");
+          }
         }
       }
       if (set)
@@ -752,7 +785,7 @@
   }
   function sortOptions(active, state) {
     let options = [];
-    let sections = null;
+    let sections = null, dynamicSectionScore = null;
     let addOption = (option) => {
       options.push(option);
       let { section } = option.completion;
@@ -778,15 +811,21 @@
           for (let option of a.result.options)
             if (match = matcher.match(option.label)) {
               let matched = !option.displayLabel ? match.matched : getMatch ? getMatch(option, match.matched) : [];
-              addOption(new Option(option, a.source, matched, match.score + (option.boost || 0)));
+              let score2 = match.score + (option.boost || 0);
+              addOption(new Option(option, a.source, matched, score2));
+              if (typeof option.section == "object" && option.section.rank === "dynamic") {
+                let { name } = option.section;
+                if (!dynamicSectionScore)
+                  dynamicSectionScore = /* @__PURE__ */ Object.create(null);
+                dynamicSectionScore[name] = Math.max(score2, dynamicSectionScore[name] || -1e9);
+              }
             }
         }
       }
     if (sections) {
       let sectionOrder = /* @__PURE__ */ Object.create(null), pos = 0;
       let cmp = (a, b) => {
-        var _a, _b;
-        return ((_a = a.rank) !== null && _a !== void 0 ? _a : 1e9) - ((_b = b.rank) !== null && _b !== void 0 ? _b : 1e9) || (a.name < b.name ? -1 : 1);
+        return (a.rank === "dynamic" && b.rank === "dynamic" ? dynamicSectionScore[b.name] - dynamicSectionScore[a.name] : 0) || (typeof a.rank == "number" ? a.rank : 1e9) - (typeof b.rank == "number" ? b.rank : 1e9) || (a.name < b.name ? -1 : 1);
       };
       for (let s of sections.sort(cmp)) {
         pos -= 1e5;
@@ -844,7 +883,7 @@
       }, prev ? prev.timestamp : Date.now(), selected, false);
     }
     map(changes) {
-      return new _CompletionDialog(this.options, this.attrs, Object.assign(Object.assign({}, this.tooltip), { pos: changes.mapPos(this.tooltip.pos) }), this.timestamp, this.selected, this.disabled);
+      return new _CompletionDialog(this.options, this.attrs, __spreadProps(__spreadValues({}, this.tooltip), { pos: changes.mapPos(this.tooltip.pos) }), this.timestamp, this.selected, this.disabled);
     }
     setDisabled() {
       return new _CompletionDialog(this.options, this.attrs, this.tooltip, this.timestamp, this.selected, true);
@@ -1036,7 +1075,7 @@
           0
           /* State.Inactive */
         );
-      return new _ActiveResult(this.source, this.explicit, mapping.mapPos(this.limit), this.result, mapping.mapPos(this.from), mapping.mapPos(this.to, 1));
+      return new _ActiveResult(this.source, this.explicit, mapping.mapPos(this.limit), result, mapping.mapPos(this.from), mapping.mapPos(this.to, 1));
     }
     touches(tr) {
       return tr.changes.touchesRange(this.from, this.to);
@@ -1053,7 +1092,6 @@
       return sources.map((s) => s.map(mapping));
     }
   });
-  var setSelectedEffect = /* @__PURE__ */ import_state.StateEffect.define();
   var completionState = /* @__PURE__ */ import_state.StateField.define({
     create() {
       return CompletionState.start();
@@ -1072,7 +1110,9 @@
     if (!(result instanceof ActiveResult))
       return false;
     if (typeof apply == "string")
-      view.dispatch(Object.assign(Object.assign({}, insertCompletionText(view.state, apply, result.from, result.to)), { annotations: pickedCompletion.of(option.completion) }));
+      view.dispatch(__spreadProps(__spreadValues({}, insertCompletionText(view.state, apply, result.from, result.to)), {
+        annotations: pickedCompletion.of(option.completion)
+      }));
     else
       apply(view, option.completion, result.from, result.to);
     return true;
@@ -1342,7 +1382,8 @@
       content: '"\xB7\xB7\xB7"',
       opacity: 0.5,
       display: "block",
-      textAlign: "center"
+      textAlign: "center",
+      cursor: "pointer"
     },
     ".cm-tooltip.cm-completionInfo": {
       position: "absolute",
@@ -1463,8 +1504,10 @@
       let fields = [];
       let lines = [], positions = [], m;
       for (let line of template.split(/\r\n?|\n/)) {
-        while (m = /[#$]\{(?:(\d+)(?::([^}]*))?|((?:\\[{}]|[^}])*))\}/.exec(line)) {
+        while (m = /[#$]\{(?:(\d+)(?::([^{}]*))?|((?:\\[{}]|[^{}])*))\}/.exec(line)) {
           let seq = m[1] ? +m[1] : null, rawName = m[2] || m[3] || "", found = -1;
+          if (seq === 0)
+            seq = 1e9;
           let name = rawName.replace(/\\[{}]/g, (m2) => m2[1]);
           for (let i = 0; i < fields.length; i++) {
             if (seq != null ? fields[i].seq == seq : name ? fields[i].name == name : false)
@@ -1480,6 +1523,12 @@
               if (pos.field >= found)
                 pos.field++;
           }
+          for (let pos of positions)
+            if (pos.line == lines.length && pos.from > m.index) {
+              let snip = m[2] ? 3 + (m[1] || "").length : 2;
+              pos.from -= snip;
+              pos.to -= snip;
+            }
           positions.push(new FieldPos(found, lines.length, m.index, m.index + name.length));
           line = line.slice(0, m.index) + rawName + line.slice(m.index + m[0].length);
         }
@@ -1511,7 +1560,7 @@
     constructor(ranges, active) {
       this.ranges = ranges;
       this.active = active;
-      this.deco = import_view.Decoration.set(ranges.map((r) => (r.from == r.to ? fieldMarker : fieldRange).range(r.from, r.to)));
+      this.deco = import_view.Decoration.set(ranges.map((r) => (r.from == r.to ? fieldMarker : fieldRange).range(r.from, r.to)), true);
     }
     map(changes) {
       let ranges = [];
@@ -1618,7 +1667,7 @@
   });
   var addSnippetKeymap = /* @__PURE__ */ import_state.Prec.highest(/* @__PURE__ */ import_view.keymap.compute([snippetKeymap], (state) => state.facet(snippetKeymap)));
   function snippetCompletion(template, completion) {
-    return Object.assign(Object.assign({}, completion), { apply: snippet(template) });
+    return __spreadProps(__spreadValues({}, completion), { apply: snippet(template) });
   }
   var snippetPointerHandler = /* @__PURE__ */ import_view.EditorView.domEventHandlers({
     mousedown(event, view) {
@@ -1695,7 +1744,8 @@
     return result;
   }
   var completeAnyWord = (context) => {
-    let wordChars = context.state.languageDataAt("wordChars", context.pos).join("");
+    var _a;
+    let wordChars = (_a = context.state.languageDataAt("wordChars", context.pos)[0]) !== null && _a !== void 0 ? _a : "";
     let re = wordRE(wordChars);
     let token = context.matchBefore(mapRE(re, (s) => s + "$"));
     if (!token && !context.explicit)
@@ -1946,6 +1996,7 @@
   var completionKeymap = [
     { key: "Ctrl-Space", run: startCompletion },
     { mac: "Alt-`", run: startCompletion },
+    { mac: "Alt-i", run: startCompletion },
     { key: "Escape", run: closeCompletion },
     { key: "ArrowDown", run: /* @__PURE__ */ moveCompletionSelection(true) },
     { key: "ArrowUp", run: /* @__PURE__ */ moveCompletionSelection(false) },

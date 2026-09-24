@@ -443,17 +443,17 @@
       ), maxChunk = chunk << 1, minChunk = chunk >> 1;
       let chunked = [], currentLines = 0, currentLen = -1, currentChunk = [];
       function add(child) {
-        let last;
+        let last2;
         if (child.lines > maxChunk && child instanceof _TextNode) {
           for (let node of child.children)
             add(node);
         } else if (child.lines > minChunk && (currentLines > minChunk || !currentLines)) {
           flush();
           chunked.push(child);
-        } else if (child instanceof TextLeaf && currentLines && (last = currentChunk[currentChunk.length - 1]) instanceof TextLeaf && child.lines + last.lines <= 32) {
+        } else if (child instanceof TextLeaf && currentLines && (last2 = currentChunk[currentChunk.length - 1]) instanceof TextLeaf && child.lines + last2.lines <= 32) {
           currentLines += child.lines;
           currentLen += child.length + 1;
-          currentChunk[currentChunk.length - 1] = new TextLeaf(last.text.concat(child.text), last.length + 1 + child.length);
+          currentChunk[currentChunk.length - 1] = new TextLeaf(last2.text.concat(child.text), last2.length + 1 + child.length);
         } else {
           if (currentLines + child.lines > chunk)
             flush();
@@ -515,21 +515,21 @@
     nextInner(skip, dir) {
       this.done = this.lineBreak = false;
       for (; ; ) {
-        let last = this.nodes.length - 1;
-        let top = this.nodes[last], offsetValue = this.offsets[last], offset = offsetValue >> 1;
+        let last2 = this.nodes.length - 1;
+        let top = this.nodes[last2], offsetValue = this.offsets[last2], offset = offsetValue >> 1;
         let size = top instanceof TextLeaf ? top.text.length : top.children.length;
         if (offset == (dir > 0 ? size : 0)) {
-          if (last == 0) {
+          if (last2 == 0) {
             this.done = true;
             this.value = "";
             return this;
           }
           if (dir > 0)
-            this.offsets[last - 1]++;
+            this.offsets[last2 - 1]++;
           this.nodes.pop();
           this.offsets.pop();
         } else if ((offsetValue & 1) == (dir > 0 ? 0 : 1)) {
-          this.offsets[last] += dir;
+          this.offsets[last2] += dir;
           if (skip == 0) {
             this.lineBreak = true;
             this.value = "\n";
@@ -538,7 +538,7 @@
           skip--;
         } else if (top instanceof TextLeaf) {
           let next = top.text[offset + (dir < 0 ? -1 : 0)];
-          this.offsets[last] += dir;
+          this.offsets[last2] += dir;
           if (next.length > Math.max(0, skip)) {
             this.value = skip == 0 ? next : dir > 0 ? next.slice(skip) : next.slice(0, next.length - skip);
             return this;
@@ -548,10 +548,10 @@
           let next = top.children[offset + (dir < 0 ? -1 : 0)];
           if (skip > next.length) {
             skip -= next.length;
-            this.offsets[last] += dir;
+            this.offsets[last2] += dir;
           } else {
             if (dir < 0)
-              this.offsets[last]--;
+              this.offsets[last2]--;
             this.nodes.push(next);
             this.offsets.push(dir > 0 ? 1 : (next instanceof TextLeaf ? next.text.length : next.children.length) << 1);
           }
@@ -1093,14 +1093,14 @@
   function addSection(sections, len, ins, forceJoin = false) {
     if (len == 0 && ins <= 0)
       return;
-    let last = sections.length - 2;
-    if (last >= 0 && ins <= 0 && ins == sections[last + 1])
-      sections[last] += len;
-    else if (last >= 0 && len == 0 && sections[last] == 0)
-      sections[last + 1] += ins;
+    let last2 = sections.length - 2;
+    if (last2 >= 0 && ins <= 0 && ins == sections[last2 + 1])
+      sections[last2] += len;
+    else if (last2 >= 0 && len == 0 && sections[last2] == 0)
+      sections[last2 + 1] += ins;
     else if (forceJoin) {
-      sections[last] += len;
-      sections[last + 1] += ins;
+      sections[last2] += len;
+      sections[last2 + 1] += ins;
     } else
       sections.push(len, ins);
   }
@@ -1284,10 +1284,11 @@
     }
   };
   var SelectionRange = class _SelectionRange {
-    constructor(from, to, flags) {
+    constructor(from, to, flags, goalColumn) {
       this.from = from;
       this.to = to;
       this.flags = flags;
+      this.goalColumn = goalColumn;
     }
     /**
     The anchor of the range—the side that doesn't move when you
@@ -1319,22 +1320,22 @@
       return this.flags & 8 ? -1 : this.flags & 16 ? 1 : 0;
     }
     /**
+    A flag that, when set, makes some selection-extending commands
+    treat the range's head and anchor as exchangeable, so that for
+    example Shift-ArrowUp will make the lower side of the selection
+    the anchor, even if that was the head before. Used to implement
+    MacOS-style undirectional selections.
+    */
+    get undirectional() {
+      return (this.flags & 64) > 0;
+    }
+    /**
     The bidirectional text level associated with this cursor, if
     any.
     */
     get bidiLevel() {
       let level = this.flags & 7;
       return level == 7 ? null : level;
-    }
-    /**
-    The goal column (stored vertical offset) associated with a
-    cursor. This is used to preserve the vertical position when
-    [moving](https://codemirror.net/6/docs/ref/#view.EditorView.moveVertically) across
-    lines of different length.
-    */
-    get goalColumn() {
-      let value = this.flags >> 6;
-      return value == 16777215 ? void 0 : value;
     }
     /**
     Map this range through a change, producing a valid range in the
@@ -1348,22 +1349,22 @@
         from = change.mapPos(this.from, 1);
         to = change.mapPos(this.to, -1);
       }
-      return from == this.from && to == this.to ? this : new _SelectionRange(from, to, this.flags);
+      return from == this.from && to == this.to ? this : new _SelectionRange(from, to, this.flags, this.goalColumn);
     }
     /**
     Extend this range to cover at least `from` to `to`.
     */
-    extend(from, to = from) {
+    extend(from, to = from, assoc = 0) {
       if (from <= this.anchor && to >= this.anchor)
-        return EditorSelection.range(from, to);
+        return EditorSelection.range(from, to, void 0, void 0, assoc);
       let head = Math.abs(from - this.anchor) > Math.abs(to - this.anchor) ? from : to;
-      return EditorSelection.range(this.anchor, head);
+      return EditorSelection.range(this.anchor, head, void 0, void 0, assoc);
     }
     /**
     Compare this range to another range.
     */
     eq(other, includeAssoc = false) {
-      return this.anchor == other.anchor && this.head == other.head && (!includeAssoc || !this.empty || this.assoc == other.assoc);
+      return this.anchor == other.anchor && this.head == other.head && this.goalColumn == other.goalColumn && (!includeAssoc || !this.empty || this.assoc == other.assoc);
     }
     /**
     Return a JSON-serializable object representing the range.
@@ -1383,8 +1384,8 @@
     /**
     @internal
     */
-    static create(from, to, flags) {
-      return new _SelectionRange(from, to, flags);
+    static create(from, to, flags, goalColumn) {
+      return new _SelectionRange(from, to, flags, goalColumn);
     }
   };
   var EditorSelection = class _EditorSelection {
@@ -1486,14 +1487,25 @@
     safely ignore the optional arguments in most situations.
     */
     static cursor(pos, assoc = 0, bidiLevel, goalColumn) {
-      return SelectionRange.create(pos, pos, (assoc == 0 ? 0 : assoc < 0 ? 8 : 16) | (bidiLevel == null ? 7 : Math.min(6, bidiLevel)) | (goalColumn !== null && goalColumn !== void 0 ? goalColumn : 16777215) << 6);
+      return SelectionRange.create(pos, pos, (assoc == 0 ? 0 : assoc < 0 ? 8 : 16) | (bidiLevel == null ? 7 : Math.min(6, bidiLevel)), goalColumn);
     }
     /**
     Create a selection range.
     */
-    static range(anchor, head, goalColumn, bidiLevel) {
-      let flags = (goalColumn !== null && goalColumn !== void 0 ? goalColumn : 16777215) << 6 | (bidiLevel == null ? 7 : Math.min(6, bidiLevel));
-      return head < anchor ? SelectionRange.create(head, anchor, 32 | 16 | flags) : SelectionRange.create(anchor, head, (head > anchor ? 8 : 0) | flags);
+    static range(anchor, head, goalColumn, bidiLevel, assoc) {
+      let flags = bidiLevel == null ? 7 : Math.min(6, bidiLevel);
+      if (!assoc && anchor != head)
+        assoc = head < anchor ? 1 : -1;
+      if (assoc)
+        flags |= assoc < 0 ? 8 : 16;
+      return head < anchor ? SelectionRange.create(head, anchor, flags | 32, goalColumn) : SelectionRange.create(anchor, head, flags, goalColumn);
+    }
+    /**
+    Create an [undirectional](https://codemirror.net/6/docs/ref/#state.SelectionRange.undirectional)
+    selection range.
+    */
+    static undirectionalRange(from, to) {
+      return SelectionRange.create(from, to, 64, void 0);
     }
     /**
     @internal
@@ -1635,6 +1647,9 @@
           return 1;
         }
       };
+    }
+    get extension() {
+      return this;
     }
   };
   function compareArray(a, b, compare2) {
@@ -1810,6 +1825,9 @@
       this.inner = inner;
       this.prec = prec2;
     }
+    get extension() {
+      return this;
+    }
   };
   var Compartment = class _Compartment {
     /**
@@ -1838,6 +1856,9 @@
     constructor(compartment, inner) {
       this.compartment = compartment;
       this.inner = inner;
+    }
+    get extension() {
+      return this;
     }
   };
   var Configuration = class _Configuration {
@@ -1946,6 +1967,8 @@
       } else {
         let content = ext.extension;
         if (!content)
+          throw new Error(`Unrecognized extension value in extension set (${ext}).`);
+        if (content == ext)
           throw new Error(`Unrecognized extension value in extension set (${ext}). This sometimes happens because multiple instances of @codemirror/state are loaded, breaking instanceof checks.`);
         inner(content, prec2);
       }
@@ -2393,7 +2416,7 @@
         text = this.toText(text);
       return this.changeByRange((range) => ({
         changes: { from: range.from, to: range.to, insert: text },
-        range: EditorSelection.cursor(range.from + text.length)
+        range: EditorSelection.cursor(range.from + text.length, -1)
       }));
     }
     /**
@@ -2602,7 +2625,8 @@
      - Other (anything else)
     */
     charCategorizer(at) {
-      return makeCategorizer(this.languageDataAt("wordChars", at).join(""));
+      let chars = this.languageDataAt("wordChars", at);
+      return makeCategorizer(chars.length ? chars[0] : "");
     }
     /**
     Find the word at the given position, meaning the range
@@ -2685,6 +2709,9 @@
   RangeValue.prototype.startSide = RangeValue.prototype.endSide = 0;
   RangeValue.prototype.point = false;
   RangeValue.prototype.mapMode = MapMode.TrackDel;
+  function cmpVal(a, b) {
+    return a == b || a.constructor == b.constructor && a.eq(b);
+  }
   var Range = class _Range {
     constructor(from, to, value) {
       this.from = from;
@@ -2709,7 +2736,7 @@
       this.maxPoint = maxPoint;
     }
     get length() {
-      return this.to[this.to.length - 1];
+      return last(this.to);
     }
     // Find the index of the given position and side. Use the ranges'
     // `from` pos when `end == false`, `to` when `end == true`.
@@ -2733,9 +2760,9 @@
         if (f(this.from[i] + offset, this.to[i] + offset, this.value[i]) === false)
           return false;
     }
-    map(offset, changes) {
+    map(offset, changes, basePos, baseSide, spill) {
       let value = [], from = [], to = [], newPos = -1, maxPoint = -1;
-      for (let i = 0; i < this.value.length; i++) {
+      iter: for (let i = 0; i < this.value.length; i++) {
         let val = this.value[i], curFrom = this.from[i] + offset, curTo = this.to[i] + offset, newFrom, newTo;
         if (curFrom == curTo) {
           let mapped = changes.mapPos(curFrom, val.startSide, val.mapMode);
@@ -2759,9 +2786,27 @@
           newPos = newFrom;
         if (val.point)
           maxPoint = Math.max(maxPoint, newTo - newFrom);
-        value.push(val);
-        from.push(newFrom - newPos);
-        to.push(newTo - newPos);
+        if ((newFrom - basePos || val.startSide - baseSide) >= 0) {
+          value.push(val);
+          from.push(newFrom - newPos);
+          to.push(newTo - newPos);
+          basePos = newTo;
+          baseSide = val.endSide;
+        } else {
+          if (newFrom == newTo) {
+            for (let i2 = value.length; i2 > 0; i2--) {
+              if ((newFrom - (to[i2 - 1] + newPos) || val.startSide - value[i2 - 1].endSide) >= 0) {
+                value.splice(i2, 0, val);
+                from.splice(i2, 0, newFrom - newPos);
+                to.splice(i2, 0, newTo - newPos);
+                continue iter;
+              }
+              if ((newFrom - (from[i2 - 1] + newPos) || val.endSide - value[i2 - 1].startSide) > 0)
+                break;
+            }
+          }
+          spill(newFrom, newTo, val);
+        }
       }
       return { mapped: value.length ? new _Chunk(from, to, value, maxPoint) : null, pos: newPos };
     }
@@ -2783,8 +2828,8 @@
     @internal
     */
     get length() {
-      let last = this.chunk.length - 1;
-      return last < 0 ? 0 : Math.max(this.chunkEnd(last), this.nextLayer.length);
+      let last2 = this.chunk.length - 1;
+      return last2 < 0 ? 0 : Math.max(this.chunkEnd(last2), this.nextLayer.length);
     }
     /**
     The number of ranges in the set.
@@ -2826,13 +2871,13 @@
       while (cur.value || i < add.length) {
         if (i < add.length && (cur.from - add[i].from || cur.startSide - add[i].value.startSide) >= 0) {
           let range = add[i++];
-          if (!builder.addInner(range.from, range.to, range.value))
+          if (!builder.addInner(range.from, range.to, range.value, false))
             spill.push(range);
         } else if (cur.rangeIndex == 1 && cur.chunkIndex < this.chunk.length && (i == add.length || this.chunkEnd(cur.chunkIndex) < add[i].from) && (!filter || filterFrom > this.chunkEnd(cur.chunkIndex) || filterTo < this.chunkPos[cur.chunkIndex]) && builder.addChunk(this.chunkPos[cur.chunkIndex], this.chunk[cur.chunkIndex])) {
           cur.nextChunk();
         } else {
           if (!filter || filterFrom > cur.to || filterTo < cur.from || filter(cur.from, cur.to, cur.value)) {
-            if (!builder.addInner(cur.from, cur.to, cur.value))
+            if (!builder.addInner(cur.from, cur.to, cur.value, false))
               spill.push(Range.create(cur.from, cur.to, cur.value));
           }
           cur.next();
@@ -2847,6 +2892,12 @@
       if (changes.empty || this.isEmpty)
         return this;
       let chunks = [], chunkPos = [], maxPoint = -1;
+      let spilled;
+      let spill = (from, to, value) => {
+        if (!spilled)
+          spilled = new RangeSetBuilder();
+        spilled.addRange(from, to, value, false);
+      };
       for (let i = 0; i < this.chunk.length; i++) {
         let start = this.chunkPos[i], chunk = this.chunk[i];
         let touch = changes.touchesRange(start, start + chunk.length);
@@ -2855,7 +2906,8 @@
           chunks.push(chunk);
           chunkPos.push(changes.mapPos(start));
         } else if (touch === true) {
-          let { mapped, pos } = chunk.map(start, changes);
+          let [prevPos, prevSide] = !chunks.length ? [-1, -1] : [last(chunkPos) + last(chunks).length, last(last(chunks).value).endSide];
+          let { mapped, pos } = chunk.map(start, changes, prevPos, prevSide, spill);
           if (mapped) {
             maxPoint = Math.max(maxPoint, mapped.maxPoint);
             chunks.push(mapped);
@@ -2864,6 +2916,8 @@
         }
       }
       let next = this.nextLayer.map(changes);
+      if (spilled)
+        next = spilled.finishInner(next);
       return chunks.length == 0 ? next : new _RangeSet(chunkPos, chunks, next || _RangeSet.empty, maxPoint);
     }
     /**
@@ -2932,7 +2986,7 @@
       let sharedChunks = findSharedChunks(a, b);
       let sideA = new SpanCursor(a, sharedChunks, 0).goto(from), sideB = new SpanCursor(b, sharedChunks, 0).goto(from);
       for (; ; ) {
-        if (sideA.to != sideB.to || !sameValues(sideA.active, sideB.active) || sideA.point && (!sideB.point || !sideA.point.eq(sideB.point)))
+        if (sideA.to != sideB.to || !sameValues(sideA.active, sideB.active) || sideA.point && (!sideB.point || !cmpVal(sideA.point, sideB.point)))
           return false;
         if (sideA.to > to)
           return true;
@@ -2986,7 +3040,7 @@
     static join(sets) {
       if (!sets.length)
         return _RangeSet.empty;
-      let result = sets[sets.length - 1];
+      let result = last(sets);
       for (let i = sets.length - 2; i >= 0; i--) {
         for (let layer = sets[i]; layer != _RangeSet.empty; layer = layer.nextLayer)
           result = new _RangeSet(layer.chunkPos, layer.chunk, result, Math.max(layer.maxPoint, result.maxPoint));
@@ -2995,6 +3049,9 @@
     }
   };
   RangeSet.empty = /* @__PURE__ */ new RangeSet([], [], null, -1);
+  function last(arr) {
+    return arr[arr.length - 1];
+  }
   function lazySort(ranges) {
     if (ranges.length > 1)
       for (let prev = ranges[0], i = 1; i < ranges.length; i++) {
@@ -3041,15 +3098,21 @@
     `value.startSide`) order.
     */
     add(from, to, value) {
-      if (!this.addInner(from, to, value))
-        (this.nextLayer || (this.nextLayer = new _RangeSetBuilder())).add(from, to, value);
+      this.addRange(from, to, value, true);
     }
     /**
     @internal
     */
-    addInner(from, to, value) {
+    addRange(from, to, value, strict) {
+      if (!this.addInner(from, to, value, strict))
+        (this.nextLayer || (this.nextLayer = new _RangeSetBuilder())).addRange(from, to, value, strict);
+    }
+    /**
+    @internal
+    */
+    addInner(from, to, value, strict) {
       let diff = from - this.lastTo || value.startSide - this.last.endSide;
-      if (diff <= 0 && (from - this.lastFrom || value.startSide - this.last.startSide) < 0)
+      if (strict && diff <= 0 && (from - this.lastFrom || value.startSide - this.last.startSide) < 0)
         throw new Error("Ranges must be added sorted by `from` position and `startSide`");
       if (diff < 0)
         return false;
@@ -3078,10 +3141,10 @@
       this.setMaxPoint = Math.max(this.setMaxPoint, chunk.maxPoint);
       this.chunks.push(chunk);
       this.chunkPos.push(from);
-      let last = chunk.value.length - 1;
-      this.last = chunk.value[last];
-      this.lastFrom = chunk.from[last] + from;
-      this.lastTo = chunk.to[last] + from;
+      let last2 = chunk.value.length - 1;
+      this.last = chunk.value[last2];
+      this.lastFrom = chunk.from[last2] + from;
+      this.lastTo = chunk.to[last2] + from;
       return true;
     }
     /**
@@ -3382,20 +3445,27 @@
     b.goto(startB);
     let endB = startB + length;
     let pos = startB, dPos = startB - startA;
-    for (; ; ) {
+    let bounds = !!comparator.boundChange;
+    for (let boundChange = false; ; ) {
       let dEnd = a.to + dPos - b.to, diff = dEnd || a.endSide - b.endSide;
       let end = diff < 0 ? a.to + dPos : b.to, clipEnd = Math.min(end, endB);
-      if (a.point || b.point) {
-        if (!(a.point && b.point && (a.point == b.point || a.point.eq(b.point)) && sameValues(a.activeForPoint(a.to), b.activeForPoint(b.to))))
+      let point = a.point || b.point;
+      if (point) {
+        if (!(a.point && b.point && cmpVal(a.point, b.point) && sameValues(a.activeForPoint(a.to), b.activeForPoint(b.to))))
           comparator.comparePoint(pos, clipEnd, a.point, b.point);
+        boundChange = false;
       } else {
+        if (boundChange) {
+          comparator.boundChange(pos);
+          boundChange = false;
+        }
         if (clipEnd > pos && !sameValues(a.active, b.active))
           comparator.compareRange(pos, clipEnd, a.active, b.active);
+        if (bounds && clipEnd < endB && (dEnd || a.openEnd(end) != b.openEnd(end)))
+          boundChange = true;
       }
       if (end > endB)
         break;
-      if ((dEnd || a.openEnd != b.openEnd) && comparator.boundChange)
-        comparator.boundChange(end);
       pos = end;
       if (diff <= 0)
         a.next();
@@ -3407,7 +3477,7 @@
     if (a.length != b.length)
       return false;
     for (let i = 0; i < a.length; i++)
-      if (a[i] != b[i] && !a[i].eq(b[i]))
+      if (a[i] != b[i] && !cmpVal(a[i], b[i]))
         return false;
     return true;
   }
