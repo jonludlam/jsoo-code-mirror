@@ -38,6 +38,23 @@ the page as it opened: a check passes the views it will change to
 | tooltip | hover_tooltip showing the word under the cursor |
 | view_plugin | a ViewPlugin maintaining decorations as the viewport moves |
 
+## Ported from codemirror.net/examples
+
+`upstream/<name>/` holds every upstream example, under upstream's name,
+as close to the original as OCaml allows: one `.ml` per upstream file,
+keeping its names and its `//!section` markers as `(*!section*)`, so a
+reader can hold the page and the port side by side. The page's markup
+and CSS come from upstream's `index.md`. The self-check is a separate
+`selfcheck.ml`, over the shared `examples/check` library, so the ported
+files carry nothing that is not in the original.
+
+Where OCaml has to differ, the port says so where it happens: a value
+JavaScript uses before defining it is defined first; `changeByRange`'s
+result is made into a spec; a JavaScript class with fields is a
+`WidgetType.define`; the two grammar examples load the parser their
+dune rule generates; collab's worker is a second program, in `worker/`.
+`ie11` is not ported, being about transpiling for Internet Explorer.
+
 ## Index
 
 `examples/index.html` lists them all with a line each, so the directory

@@ -1,0 +1,30 @@
+(executable
+ (name selfcheck)
+ (modes js)
+ (libraries brr example_check code-mirror)
+ (js_of_ocaml
+  (javascript_files parser.bundle.js)))
+
+(alias
+ (name all)
+ (deps index.html))
+
+; parser.js is lezer-generator's output for example.grammar, and parser.bundle.js
+; that module bundled for js_of_ocaml; both are committed, so building the
+; example needs no node. Regenerate with `dune build --profile=with-bundle`
+; after `npm install`.
+
+(rule
+ (targets parser.js parser.bundle.js)
+ (mode promote)
+ (enabled_if
+  (= %{profile} with-bundle))
+ (deps
+  example.grammar
+  %{project_root}/js/grammar.sh
+  (source_tree %{project_root}/js)
+  (source_tree %{project_root}/node_modules))
+ (action
+  (chdir
+   %{project_root}
+   (run sh js/grammar.sh %{dep:example.grammar} __example_grammar))))

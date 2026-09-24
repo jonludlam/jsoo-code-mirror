@@ -1,0 +1,8 @@
+(executable
+ (name selfcheck)
+ (modes js)
+ (libraries brr example_check code-mirror code-mirror.lang-javascript code-mirror.lang-html code-mirror.lang-python))
+
+(alias
+ (name all)
+ (deps index.html))

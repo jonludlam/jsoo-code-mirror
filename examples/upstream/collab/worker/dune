@@ -1,0 +1,7 @@
+; The authority, a program of its own running in a web worker: it needs
+; only state and collab, and no DOM.
+
+(executable
+ (name worker)
+ (modes js)
+ (libraries brr code-mirror.state code-mirror.collab))

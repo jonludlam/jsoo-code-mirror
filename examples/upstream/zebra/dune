@@ -1,0 +1,8 @@
+(executable
+ (name selfcheck)
+ (modes js)
+ (libraries brr example_check code-mirror.state code-mirror.view code-mirror.commands))
+
+(alias
+ (name all)
+ (deps index.html))

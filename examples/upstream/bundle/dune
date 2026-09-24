@@ -1,0 +1,12 @@
+; Upstream bundles editor.mjs with Rollup. Here this stanza is the bundler:
+; the libraries are the imports, each carrying its package's JavaScript,
+; and (modes js) writes the one script index.html loads.
+
+(executable
+ (name selfcheck)
+ (modes js)
+ (libraries brr example_check code-mirror code-mirror.lang-javascript))
+
+(alias
+ (name all)
+ (deps index.html))

@@ -1,0 +1,14 @@
+(executable
+ (name selfcheck)
+ (modes js)
+ (libraries brr example_check code-mirror))
+
+(alias
+ (name all)
+ (deps index.html))
+
+; the worker, built in worker/, is part of this page
+
+(alias
+ (name all)
+ (deps worker/worker.bc.js))
