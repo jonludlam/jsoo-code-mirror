@@ -151,6 +151,11 @@ type completion_source = CompletionContext.t -> CompletionResult.t option Fut.t
      autocomplete.CompletionSource}. May return its result synchronously; wrap a
     synchronous result with [Fut.return] (see {!Cm_view.hover_tooltip}). *)
 
+val completion_source_conv : completion_source Conv.t
+(** For a source in language data, as in
+    [Facet.of_ (Language.data lang) (Jv.obj [| ("autocomplete",
+     completion_source_conv.to_jv source) |])]. *)
+
 val complete_from_list : Completion.t list -> completion_source
 (** {{:https://codemirror.net/docs/ref/#autocomplete.completeFromList}
      autocomplete.completeFromList} *)

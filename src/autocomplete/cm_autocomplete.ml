@@ -259,6 +259,8 @@ let source_of_jv (raw : Jv.t) : completion_source =
     (Jv.Promise.resolve r)
   |> Fut.map (function Ok v -> v | Error _ -> None)
 
+let completion_source_conv = Conv.{ to_jv = source_to_jv; of_jv = source_of_jv }
+
 let complete_from_list (l : Completion.t list) : completion_source =
   Jv.call (Lazy.force pkg) "completeFromList"
     [| Jv.of_list Completion.to_jv l |]
