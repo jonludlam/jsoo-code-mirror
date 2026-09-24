@@ -14,6 +14,7 @@ type mouse_selection_style = {
 
 let pkg = lazy (Jv.get Jv.global "__CM__view")
 let widget_type_cls = lazy (Jv.get (Lazy.force pkg) "WidgetType")
+let match_decorator_cls = lazy (Jv.get (Lazy.force pkg) "MatchDecorator")
 let decoration_cls = lazy (Jv.get (Lazy.force pkg) "Decoration")
 let editor_view_cls = lazy (Jv.get (Lazy.force pkg) "EditorView")
 let view_plugin_cls = lazy (Jv.get (Lazy.force pkg) "ViewPlugin")
@@ -133,6 +134,35 @@ module WidgetType = struct
           (Jv.callback ~arity:1 (fun (dom : Jv.t) -> f (Brr.El.of_jv dom))))
       destroy;
     w
+
+  let define (type a) ?eq ?update_dom ?estimated_height ?line_breaks
+      ?ignore_event ?destroy ~to_dom () : a -> t =
+    (* Every instance shares JavaScript's WidgetType constructor, so each
+       class gets a token and [eq] only compares within one class. *)
+    let cls = Jv.obj [||] in
+    let value_of (w : Jv.t) : a option =
+      if Jv.strict_equal (Jv.get w "_cls") cls then
+        Some (Jv.Id.of_jv (Jv.get w "_v"))
+      else None
+    in
+    fun (v : a) ->
+      let eq =
+        Option.map
+          (fun f other ->
+            match value_of other with Some o -> f v o | None -> false)
+          eq
+      in
+      let w =
+        make ?eq
+          ?update_dom:(Option.map (fun f -> f v) update_dom)
+          ?estimated_height ?line_breaks
+          ?ignore_event:(Option.map (fun f -> f v) ignore_event)
+          ?destroy:(Option.map (fun f -> f v) destroy)
+          ~to_dom:(to_dom v) ()
+      in
+      Jv.set w "_cls" cls;
+      Jv.set w "_v" (Jv.Id.to_jv v);
+      w
 end
 
 module Direction = struct
@@ -257,6 +287,58 @@ module EditorViewConfig = struct
         Jv.set o "dispatchTransactions" (Jv.callback ~arity:2 wrapped))
       dispatch_transactions;
     o
+end
+
+module MatchDecorator = struct
+  type t = Jv.t
+
+  include (Jv.Id : Jv.CONV with type t := t)
+
+  type decoration =
+    [ `Decoration of Decoration.t
+    | `Of_match of string array -> editor_view -> int -> Decoration.t option ]
+
+  let groups (m : Jv.t) : string array =
+    Array.init (Jv.Int.get m "length") (fun i ->
+        let g = Jv.Jarray.get m i in
+        if Jv.is_undefined g then "" else Jv.to_string g)
+
+  let create ~regexp ?decoration ?decorate ?boundary ?max_length () : t =
+    let o = Jv.obj [| ("regexp", regexp) |] in
+    Option.iter
+      (function
+        | `Decoration d -> Jv.set o "decoration" (Decoration.to_jv d)
+        | `Of_match f ->
+            Jv.set o "decoration"
+              (Jv.callback ~arity:3 (fun m view pos ->
+                   match f (groups m) view (Jv.to_int pos) with
+                   | Some d -> Decoration.to_jv d
+                   | None -> Jv.null)))
+      decoration;
+    Option.iter
+      (fun f ->
+        Jv.set o "decorate"
+          (Jv.callback ~arity:5 (fun add from to_ m view ->
+               let add ~from ~to_ d =
+                 ignore
+                   (Jv.apply add
+                      [| Jv.of_int from; Jv.of_int to_; Decoration.to_jv d |])
+               in
+               f add ~from:(Jv.to_int from) ~to_:(Jv.to_int to_) (groups m) view;
+               Jv.undefined)))
+      decorate;
+    Jv.set_if_some o "boundary" boundary;
+    Jv.Int.set_if_some o "maxLength" max_length;
+    Jv.new' (Lazy.force match_decorator_cls) [| o |]
+
+  let deco_set_conv = RangeSet.conv_of Decoration.conv
+
+  let create_deco t view =
+    deco_set_conv.of_jv (Jv.call t "createDeco" [| view |])
+
+  let update_deco t update deco =
+    deco_set_conv.of_jv
+      (Jv.call t "updateDeco" [| update; deco_set_conv.to_jv deco |])
 end
 
 module ViewPlugin = struct

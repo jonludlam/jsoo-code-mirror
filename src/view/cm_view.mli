@@ -76,6 +76,22 @@ module WidgetType : sig
     t
   (** Subclassing [WidgetType]: [to_dom] is required, the rest override the
       defaults. *)
+
+  val define :
+    ?eq:('a -> 'a -> bool) ->
+    ?update_dom:('a -> Brr.El.t -> editor_view -> bool) ->
+    ?estimated_height:int ->
+    ?line_breaks:int ->
+    ?ignore_event:('a -> Brr.Ev.void Brr.Ev.t -> bool) ->
+    ?destroy:('a -> Brr.El.t -> unit) ->
+    to_dom:('a -> editor_view -> Brr.El.t) ->
+    unit ->
+    'a ->
+    t
+  (** A widget class whose instances carry a value, as a JavaScript subclass of
+      [WidgetType] with constructor fields does: [define ... ()] is the class,
+      and applying it to a value makes an instance. [eq] compares the values of
+      two instances of the same class, and is never called across classes. *)
 end
 
 (** {{:https://codemirror.net/docs/ref/#view.Direction} view.Direction} *)
@@ -174,6 +190,43 @@ module EditorViewConfig : sig
     t
   (** [doc], [selection] and [extensions] are the shortcut CodeMirror offers for
       creating the state along with the view. *)
+end
+
+(** {{:https://codemirror.net/docs/ref/#view.MatchDecorator}
+     view.MatchDecorator}: decorations for every match of a regular expression
+    in the visible lines, kept up to date incrementally. [regexp] is a
+    JavaScript [RegExp] with the [g] flag, passed as a raw {!Jv.t} as elsewhere
+    in these bindings; a match is its groups, [match_.(0)] being the whole match
+    and a group that did not take part [""]. *)
+module MatchDecorator : sig
+  type t
+
+  include Jv.CONV with type t := t
+
+  type decoration =
+    [ `Decoration of Decoration.t
+    | `Of_match of string array -> editor_view -> int -> Decoration.t option ]
+
+  val create :
+    regexp:Jv.t ->
+    ?decoration:decoration ->
+    ?decorate:
+      ((from:int -> to_:int -> Decoration.t -> unit) ->
+      from:int ->
+      to_:int ->
+      string array ->
+      editor_view ->
+      unit) ->
+    ?boundary:Jv.t ->
+    ?max_length:int ->
+    unit ->
+    t
+  (** [boundary] is a [RegExp] too. *)
+
+  val create_deco : t -> editor_view -> Decoration.t RangeSet.t
+
+  val update_deco :
+    t -> view_update -> Decoration.t RangeSet.t -> Decoration.t RangeSet.t
 end
 
 (** {{:https://codemirror.net/docs/ref/#view.ViewPlugin} view.ViewPlugin}.
@@ -722,9 +775,6 @@ end
       this binding's [StateEffect.t] is monomorphic (see [Cm_state]'s
       forward-type convention), so the effect is exposed only as an opaque
       [StateEffect.t] with no way to read the [ScrollTarget] back out.
-    - [MatchDecorator]: its configuration is keyed by a JavaScript [RegExp],
-      which this binding does not otherwise construct or expose; binding it well
-      would mean adding a general [RegExp] wrapper outside this package's scope.
     - [AttrSource]'s function-of-view alternative for
       [EditorView.contentAttributes]/[editorAttributes]: the fixed signature
       only accepts the plain attribute-list form. *)
