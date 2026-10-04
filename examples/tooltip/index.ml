@@ -24,14 +24,14 @@ let tooltip word ~pos ~end_ =
   let space = El.div [] in
   let dom = El.div [ El.div [ El.txt' word ]; space ] in
   El.set_inline_style (Jstr.v "padding") (Jstr.v "4px 8px") dom;
-  let positioned { Tooltip.Tooltip_view.left; right; top; bottom } =
+  let positioned { Tooltip_view.left; right; top; bottom } =
     El.set_children space
       [
         El.txt' (Printf.sprintf "space: %d x %d" (right - left) (bottom - top));
       ]
   in
-  Tooltip.Tooltip.create ~pos ~end_ ~above:true
-    ~create:(fun _view -> Tooltip.Tooltip_view.create ~dom ~positioned ())
+  Tooltip.create ~pos ~end_ ~above:true
+    ~create:(fun _view -> Tooltip_view.create ~dom ~positioned ())
     ()
 
 let source ~view ~pos ~side:_ =
@@ -44,8 +44,8 @@ let source ~view ~pos ~side:_ =
 
 let () =
   let hover =
-    Tooltip.hover_tooltip
-      ~config:(Tooltip.hover_config ~hover_time:100 ~hide_on_change:true ())
+    hover_tooltip
+      ~config:(hover_config ~hover_time:100 ~hide_on_change:true ())
       source
   in
   let config =

@@ -1,4 +1,6 @@
-include Types.State
+module Tjv = Tjv
+module Extension = Extension
+include Types
 
 module EditorStateConfig = struct
   include EditorStateConfig

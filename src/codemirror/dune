@@ -1,0 +1,6 @@
+; code-mirror: bindings to the codemirror package, and every package above.
+
+(library
+ (name code_mirror)
+ (public_name code-mirror)
+ (libraries brr cm_state cm_view cm_language cm_autocomplete cm_lint))
