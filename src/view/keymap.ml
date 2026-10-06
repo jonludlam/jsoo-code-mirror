@@ -1,6 +1,6 @@
 open Cm_state
 
-let keymap = lazy (Jv.get Jv.global "__CM__keymap")
+let keymap = lazy (Jv.get (Jv.get Jv.global "__CM__view") "keymap")
 
 type t = Jv.t
 

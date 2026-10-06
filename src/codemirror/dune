@@ -1,6 +1,17 @@
-; code-mirror: bindings to the codemirror package, and every package above.
+; code-mirror: every package, and the codemirror package's basicSetup and
+; minimalSetup, written in OCaml so it has no bundle of its own.
 
 (library
  (name code_mirror)
  (public_name code-mirror)
- (libraries brr cm_state cm_view cm_language cm_autocomplete cm_lint))
+ (libraries
+  brr
+  cm_state
+  cm_view
+  cm_language
+  cm_commands
+  cm_autocomplete
+  cm_lint
+  cm_search
+  cm_legacy_modes
+  cm_theme_one_dark))

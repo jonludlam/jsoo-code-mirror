@@ -1,6 +1,7 @@
 open Cm_state
 
-let view = lazy (Jv.get Jv.global "__CM__view")
+let pkg = Jv.get Jv.global "__CM__view"
+let view = lazy (Jv.get pkg "EditorView")
 
 type editor_view = Jv.t
 
@@ -47,7 +48,7 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let widget_type = lazy (Jv.get Jv.global "__CM__WidgetType")
+  let widget_type = lazy (Jv.get pkg "WidgetType")
 
   let make ~to_dom () =
     let w = Jv.new' (Lazy.force widget_type) [||] in
@@ -78,7 +79,7 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let decoration = lazy (Jv.get Jv.global "__CM__Decoration")
+  let decoration = lazy (Jv.get pkg "Decoration")
 
   let widget ?block ?side w =
     let o = Jv.obj [| ("widget", WidgetType.to_jv w) |] in
@@ -195,7 +196,7 @@ module EditorView = struct
 end
 
 module Panel = struct
-  let showPanel = Jv.get Jv.global "__CM__showPanel"
+  let showPanel = Jv.get pkg "showPanel"
 
   type t = Jv.t
 
@@ -252,7 +253,7 @@ let showPanel : (Panel.Constructor.pc, Jv.t) Facet.t =
   let iconv = Panel.Constructor.{ Tjv.of_jv; to_jv } in
   Facet.create iconv Panel.showPanel
 
-let line_numbers_fn = lazy (Jv.get Jv.global "__CM__lineNumbers")
+let line_numbers_fn = lazy (Jv.get pkg "lineNumbers")
 
 let line_numbers ?format_number () =
   let o = Jv.obj [||] in

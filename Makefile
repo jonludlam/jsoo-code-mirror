@@ -6,8 +6,8 @@ examples:
 node:
 	npm install
 
-# Use that command if you want to re-generate the static bundled in the includes
-# folder, for example if there was an update of code-mirror.
+# Use that command if you want to re-generate the bundles each library ships
+# (src/*/bundle.js), for example if there was an update of code-mirror.
 bundle: node
 	dune build --profile=with-bundle
 

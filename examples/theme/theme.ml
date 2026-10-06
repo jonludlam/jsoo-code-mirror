@@ -3,12 +3,10 @@ open State
 open View
 open Brr
 
-let dracula = Jv.get Jv.global "__CM__theme_dracula" |> Extension.of_jv
-
 let init ?doc () =
   let config =
     EditorStateConfig.create ?doc
-      ~extensions:(Extension.of_list [ dracula; basic_setup ])
+      ~extensions:(Extension.of_list [ Theme_one_dark.one_dark; basic_setup ])
       ()
   in
   let state = EditorState.create ~config () in
@@ -19,5 +17,5 @@ let init ?doc () =
   (state, view)
 
 let _ =
-  let _ = init ~doc:"Example of the 'dracula' theme" () in
+  let _ = init ~doc:"Example of the 'one-dark' theme" () in
   ()

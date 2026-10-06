@@ -1,3 +1,5 @@
+let pkg = Jv.get Jv.global "__CM__state"
+
 module Tjv = Tjv
 module Extension = Extension
 include Types
@@ -61,7 +63,7 @@ end
 module EditorSelection = struct
   include EditorSelection
 
-  let editor_selection = lazy (Jv.get Jv.global "__CM__EditorSelection")
+  let editor_selection = lazy (Jv.get pkg "EditorSelection")
 
   let create : ranges:SelectionRange.t list -> ?main_index:int -> unit -> t =
    fun ~ranges ?(main_index = 0) () ->
@@ -133,7 +135,7 @@ end = struct
 
   include (Tjv.Id : Tjv.CONV with type 'a t := 'a t)
 
-  let rangeset = lazy (Jv.get Jv.global "__CM__RangeSet")
+  let rangeset = lazy (Jv.get pkg "RangeSet")
 
   let map : 'a t -> ChangeDesc.t -> 'a t =
    fun v changes ->
@@ -187,7 +189,7 @@ end
 module StateEffect = struct
   include StateEffect
 
-  let state_effect = lazy (Jv.get Jv.global "__CM__StateEffect")
+  let state_effect = lazy (Jv.get pkg "StateEffect")
 
   let define : type a. (a -> Jv.t) -> (Jv.t -> a) -> a t =
    fun a_to_jv a_of_jv ->
@@ -237,7 +239,7 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let compartment = lazy (Jv.get Jv.global "__CM__Compartment")
+  let compartment = lazy (Jv.get pkg "Compartment")
   let make () = Jv.new' (Lazy.force compartment) [||]
 
   let of_ t extension =
@@ -305,7 +307,7 @@ end
 module EditorState = struct
   include EditorState
 
-  let editor_state = lazy (Jv.get Jv.global "__CM__state")
+  let editor_state = lazy (Jv.get pkg "EditorState")
 
   let create : ?config:EditorStateConfig.t -> unit -> t =
    fun ?(config = EditorStateConfig.undefined) () ->
@@ -330,7 +332,7 @@ end
 module StateField = struct
   include StateField
 
-  let state_field = lazy (Jv.get Jv.global "__CM__StateField")
+  let state_field = lazy (Jv.get pkg "StateField")
 
   let define : type a.
       ?compare:(a -> a -> bool) ->
