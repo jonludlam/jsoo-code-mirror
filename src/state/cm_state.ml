@@ -63,13 +63,11 @@ end
 module EditorSelection = struct
   include EditorSelection
 
-  let editor_selection = lazy (Jv.get pkg "EditorSelection")
+  let editor_selection = Jv.get pkg "EditorSelection"
 
   let create : ranges:SelectionRange.t list -> ?main_index:int -> unit -> t =
    fun ~ranges ?(main_index = 0) () ->
-    Jv.call
-      (Lazy.force editor_selection)
-      "create"
+    Jv.call editor_selection "create"
       (Array.of_list
          (List.map SelectionRange.to_jv ranges @ [ Jv.of_int main_index ]))
     |> of_jv
@@ -83,9 +81,7 @@ module EditorSelection = struct
       SelectionRange.t =
    fun ~pos ?(assoc = 0) ?bidiLevel ?goalColumn () ->
     let opt x = match x with Some x -> Jv.of_int x | None -> Jv.undefined in
-    Jv.call
-      (Lazy.force editor_selection)
-      "cursor"
+    Jv.call editor_selection "cursor"
       [| Jv.of_int pos; Jv.of_int assoc; opt bidiLevel; opt goalColumn |]
     |> SelectionRange.of_jv
 
@@ -98,9 +94,7 @@ module EditorSelection = struct
       SelectionRange.t =
    fun ~anchor ~head ?goalColumn ?bidiLevel () ->
     let opt x = match x with Some x -> Jv.of_int x | None -> Jv.undefined in
-    Jv.call
-      (Lazy.force editor_selection)
-      "range"
+    Jv.call editor_selection "range"
       [| Jv.of_int anchor; Jv.of_int head; opt goalColumn; opt bidiLevel |]
     |> SelectionRange.of_jv
 
@@ -135,7 +129,7 @@ end = struct
 
   include (Tjv.Id : Tjv.CONV with type 'a t := 'a t)
 
-  let rangeset = lazy (Jv.get pkg "RangeSet")
+  let rangeset = Jv.get pkg "RangeSet"
 
   let map : 'a t -> ChangeDesc.t -> 'a t =
    fun v changes ->
@@ -156,9 +150,7 @@ end = struct
     | [] -> None
     | x :: _ ->
         let conv = Range.conv x in
-        let v =
-          Jv.call (Lazy.force rangeset) "of" [| Jv.of_list Range.to_jv vs |]
-        in
+        let v = Jv.call rangeset "of" [| Jv.of_list Range.to_jv vs |] in
         Some (of_jv conv v)
 end
 
@@ -189,11 +181,11 @@ end
 module StateEffect = struct
   include StateEffect
 
-  let state_effect = lazy (Jv.get pkg "StateEffect")
+  let state_effect = Jv.get pkg "StateEffect"
 
   let define : type a. (a -> Jv.t) -> (Jv.t -> a) -> a t =
    fun a_to_jv a_of_jv ->
-    let v' = Jv.call (Lazy.force state_effect) "define" [||] in
+    let v' = Jv.call state_effect "define" [||] in
     of_jv (Tjv.conv a_to_jv a_of_jv) v'
 
   let define_ : type a.
@@ -203,7 +195,7 @@ module StateEffect = struct
       match map v changes with Some v -> a_to_jv v | None -> Jv.undefined
     in
     let o = Jv.obj [| ("map", Jv.callback ~arity:2 map) |] in
-    let v' = Jv.call (Lazy.force state_effect) "define" [| o |] in
+    let v' = Jv.call state_effect "define" [| o |] in
     of_jv (Tjv.conv a_to_jv a_of_jv) v'
 
   let is : Jv.t t -> 'a t -> bool =
@@ -220,7 +212,7 @@ module StateEffect = struct
     Jv.call (to_jv t) "of" [| conv.to_jv v |] |> of_jv conv
 
   let append_config () : Extension.t StateEffect.t =
-    Jv.get (Lazy.force state_effect) "appendConfig"
+    Jv.get state_effect "appendConfig"
     |> of_jv { of_jv = Extension.of_jv; to_jv = Extension.to_jv }
 end
 
@@ -239,8 +231,8 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let compartment = lazy (Jv.get pkg "Compartment")
-  let make () = Jv.new' (Lazy.force compartment) [||]
+  let compartment = Jv.get pkg "Compartment"
+  let make () = Jv.new' compartment [||]
 
   let of_ t extension =
     Jv.call t "of" [| Extension.to_jv extension |] |> Extension.of_jv
@@ -307,13 +299,11 @@ end
 module EditorState = struct
   include EditorState
 
-  let editor_state = lazy (Jv.get pkg "EditorState")
+  let editor_state = Jv.get pkg "EditorState"
 
   let create : ?config:EditorStateConfig.t -> unit -> t =
    fun ?(config = EditorStateConfig.undefined) () ->
-    Jv.call (Lazy.force editor_state) "create"
-      [| EditorStateConfig.to_jv config |]
-    |> of_jv
+    Jv.call editor_state "create" [| EditorStateConfig.to_jv config |] |> of_jv
 
   let doc (t : t) = Jv.get (to_jv t) "doc" |> Text.of_jv
 
@@ -332,7 +322,7 @@ end
 module StateField = struct
   include StateField
 
-  let state_field = lazy (Jv.get pkg "StateField")
+  let state_field = Jv.get pkg "StateField"
 
   let define : type a.
       ?compare:(a -> a -> bool) ->
@@ -359,7 +349,7 @@ module StateField = struct
     Jv.set_if_some o "provide" (Option.map (Jv.callback ~arity:1) provide);
     Jv.set o "update" (Jv.callback ~arity:2 update_wrapper);
     Jv.set o "create" (Jv.callback ~arity:1 create_wrapper);
-    let jv = Jv.call (Lazy.force state_field) "define" [| o |] in
+    let jv = Jv.call state_field "define" [| o |] in
     StateField.of_jv { to_jv = v_to_jv; of_jv = v_of_jv } jv
 
   let init : 'a t -> (EditorState.t -> 'a) -> Extension.t =

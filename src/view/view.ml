@@ -1,7 +1,7 @@
 open Cm_state
 
 let pkg = Jv.get Jv.global "__CM__view"
-let view = lazy (Jv.get pkg "EditorView")
+let view = Jv.get pkg "EditorView"
 
 type editor_view = Jv.t
 
@@ -48,10 +48,10 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let widget_type = lazy (Jv.get pkg "WidgetType")
+  let widget_type = Jv.get pkg "WidgetType"
 
   let make ~to_dom () =
-    let w = Jv.new' (Lazy.force widget_type) [||] in
+    let w = Jv.new' widget_type [||] in
     Jv.set w "toDOM"
       (Jv.callback ~arity:1 (fun view -> Brr.El.to_jv (to_dom view)));
     w
@@ -79,13 +79,13 @@ end = struct
 
   include (Jv.Id : Jv.CONV with type t := t)
 
-  let decoration = lazy (Jv.get pkg "Decoration")
+  let decoration = Jv.get pkg "Decoration"
 
   let widget ?block ?side w =
     let o = Jv.obj [| ("widget", WidgetType.to_jv w) |] in
     Jv.Bool.set_if_some o "block" block;
     Jv.Int.set_if_some o "side" side;
-    Jv.call (Lazy.force decoration) "widget" [| o |] |> of_jv
+    Jv.call decoration "widget" [| o |] |> of_jv
 
   let mark ?inclusive ?inclusive_start ?inclusive_end ?className ?tagName () =
     let o = Jv.obj [||] in
@@ -94,10 +94,10 @@ end = struct
     Jv.Bool.set_if_some o "inclusiveEnd" inclusive_end;
     Jv.set_if_some o "class" (Option.map Jv.of_string className);
     Jv.set_if_some o "tagName" (Option.map Jv.of_string tagName);
-    Jv.call (Lazy.force decoration) "mark" [| o |] |> of_jv
+    Jv.call decoration "mark" [| o |] |> of_jv
 
   let none =
-    let v = Jv.get (Lazy.force decoration) "none" in
+    let v = Jv.get decoration "none" in
     let conv = Tjv.{ to_jv; of_jv } in
     RangeSet.of_jv conv v
 
@@ -119,7 +119,7 @@ module EditorView = struct
 
   let create : ?config:EditorViewConfig.t -> unit -> t =
    fun ?(config = EditorViewConfig.undefined) () ->
-    Jv.new' (Lazy.force view) [| EditorViewConfig.to_jv config |]
+    Jv.new' view [| EditorViewConfig.to_jv config |]
 
   let state t = Jv.get t "state" |> EditorState.of_jv
   let set_state t v = Jv.call t "setState" [| EditorState.to_jv v |] |> ignore
@@ -138,7 +138,7 @@ module EditorView = struct
   let update_listener : (Update.t -> unit, Jv.t) Facet.t =
     let jv_of_fn f = Jv.callback ~arity:1 (fun u -> f (Update.of_jv u)) in
     let iconv = { Tjv.to_jv = jv_of_fn; of_jv = (fun _ -> assert false) } in
-    let jv = Jv.get (Lazy.force view) "updateListener" in
+    let jv = Jv.get view "updateListener" in
     Facet.create iconv jv
 
   let dispatch : t -> TransactionSpec.t -> unit =
@@ -152,12 +152,10 @@ module EditorView = struct
          ())
 
   let request_measure t = Jv.call t "requestMeasure" [||] |> ignore
-
-  let line_wrapping () =
-    Jv.get (Lazy.force view) "lineWrapping" |> Extension.of_jv
+  let line_wrapping () = Jv.get view "lineWrapping" |> Extension.of_jv
 
   let decorations : (Decoration.t RangeSet.t, Jv.t) Facet.t =
-    let jv = Jv.get (Lazy.force view) "decorations" in
+    let jv = Jv.get view "decorations" in
     let decoration_conv =
       Tjv.{ to_jv = Decoration.to_jv; of_jv = Decoration.of_jv }
     in
@@ -169,7 +167,7 @@ module EditorView = struct
   type theme = TO of (string * theme) list | TV of string
 
   let theme ?dark th =
-    let theme = Jv.get (Lazy.force view) "theme" in
+    let theme = Jv.get view "theme" in
     let rec to_obj theme =
       match theme with
       | TV s -> Jstr.of_string s |> Jv.of_jstr
@@ -183,7 +181,7 @@ module EditorView = struct
     Jv.apply theme [| to_obj th; opts |] |> Extension.of_jv
 
   let base_theme th =
-    let theme = Jv.get (Lazy.force view) "baseTheme" in
+    let theme = Jv.get view "baseTheme" in
     let rec to_obj theme =
       match theme with
       | TV s -> Jstr.of_string s |> Jv.of_jstr
@@ -253,7 +251,7 @@ let showPanel : (Panel.Constructor.pc, Jv.t) Facet.t =
   let iconv = Panel.Constructor.{ Tjv.of_jv; to_jv } in
   Facet.create iconv Panel.showPanel
 
-let line_numbers_fn = lazy (Jv.get pkg "lineNumbers")
+let line_numbers_fn = Jv.get pkg "lineNumbers"
 
 let line_numbers ?format_number () =
   let o = Jv.obj [||] in
@@ -263,4 +261,4 @@ let line_numbers ?format_number () =
          Jv.callback ~arity:2 (fun n state ->
              Jv.of_string (f (Jv.to_int n) (EditorState.of_jv state))))
        format_number);
-  Jv.apply (Lazy.force line_numbers_fn) [| o |] |> Extension.of_jv
+  Jv.apply line_numbers_fn [| o |] |> Extension.of_jv
