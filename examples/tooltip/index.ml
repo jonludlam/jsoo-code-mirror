@@ -2,9 +2,8 @@
    the editor gave the tooltip when it positioned it. The tooltip appears
    after 100ms rather than the default 300ms, and typing hides it. *)
 
-open Code_mirror
-open State
-open View
+open Cm_state
+open Cm_view
 open Brr
 
 let is_word_char c =
@@ -51,7 +50,7 @@ let () =
   let config =
     EditorStateConfig.create
       ~doc:"Hover over any word in this editor to see a tooltip.\n"
-      ~extensions:(Extension.of_list [ basic_setup; hover ])
+      ~extensions:(Extension.of_list [ Code_mirror.basic_setup; hover ])
       ()
   in
   let state = EditorState.create ~config () in

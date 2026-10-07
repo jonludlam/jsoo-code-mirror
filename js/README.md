@@ -117,9 +117,10 @@ lint bundle    borrows state and view; sets __CM__lint
 OCaml code     reads them
 ```
 
-A page only gets the bundles of the libraries it depends on. Depending
-on `code-mirror` gets every package; depending on, say,
-`code-mirror.state` alone gets only state.
+A page only gets the bundles of the libraries it depends on, and the
+libraries those depend on: depending on `code-mirror.lint` gets state,
+view and lint; depending on `code-mirror.state` alone gets only state.
+There is no library that brings in everything.
 
 | npm package                  | library                      | OCaml module        |
 |------------------------------|------------------------------|---------------------|
@@ -132,17 +133,17 @@ on `code-mirror` gets every package; depending on, say,
 | `@codemirror/search`         | `code-mirror.search`         | `Cm_search`         |
 | `@codemirror/legacy-modes`   | `code-mirror.legacy-modes`   | `Cm_legacy_modes`   |
 | `@codemirror/theme-one-dark` | `code-mirror.theme-one-dark` | `Cm_theme_one_dark` |
-
-`code-mirror` (`Code_mirror`) depends on all of them and re-exports
-them under shorter names (`Code_mirror.State`, `Code_mirror.View`, ...).
+| `codemirror`                 | `code-mirror`                | `Code_mirror`       |
 
 ## basicSetup has no bundle
 
 The `codemirror` package is only two lists, `basicSetup` and
 `minimalSetup`: "line numbers, undo history, bracket matching, ...",
 each item from another package. It has no code of its own, so it is not
-bundled. `src/codemirror/code_mirror.ml` builds the same lists in OCaml,
-taking each item from the package that provides it. If a new release of
+bundled. `code-mirror` (`src/codemirror/code_mirror.ml`) builds the
+same lists in OCaml, as `basic_setup` and `minimal_setup`, taking each
+item from the package that provides it, and depends on those seven
+packages so their bundles are on the page. If a new release of
 `codemirror` changes the lists, that file has to be updated by hand.
 
 ## Making the bundles
@@ -181,8 +182,6 @@ To bind another CodeMirror package, say `@codemirror/lang-markdown`:
    `shims/` and add it to the list in `build.sh`. Without one, any bundle
    that imports it gets its own copy.
 5. Make the bundles, as above.
-6. Decide whether `code-mirror` should depend on it and re-export it.
-   If it does, its bundle is on every page that uses `code-mirror`.
 
 A package the new one imports that has no shim is bundled inside the new
 one. That is fine as long as nothing else on the page uses it too.

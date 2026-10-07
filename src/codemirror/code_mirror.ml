@@ -1,19 +1,7 @@
-(* Every package, plus basicSetup and minimalSetup. *)
-
-module State = Cm_state
-module View = Cm_view
-module Language = Cm_language
-module Commands = Cm_commands
-module Autocomplete = Cm_autocomplete
-module Lint = Cm_lint
-module Search = Cm_search
-module Legacy_modes = Cm_legacy_modes
-module Theme_one_dark = Cm_theme_one_dark
-
-(* The codemirror package is only basicSetup and minimalSetup, two lists
-   of extensions from the other packages, so rather than bundle it they
-   are transcribed here from its dist/index.js (codemirror 6.0.1), in
-   the same order. *)
+(* The codemirror package: basicSetup and minimalSetup. They are only two
+   lists of extensions from the other packages, so rather than bundle the
+   package they are transcribed here from its dist/index.js (codemirror
+   6.0.1), in the same order. *)
 
 open struct
   let get package name = Jv.get (Jv.get Jv.global ("__CM__" ^ package)) name
@@ -36,8 +24,8 @@ open struct
     Jv.call (get "view" "keymap") "of" [| Jv.of_jv_list bindings |]
 end
 
-let basic_setup : State.Extension.t =
-  State.Extension.of_jv
+let basic_setup : Cm_state.Extension.t =
+  Cm_state.Extension.of_jv
     (Jv.of_jv_list
        [
          call "view" "lineNumbers";
@@ -71,8 +59,8 @@ let basic_setup : State.Extension.t =
            ];
        ])
 
-let minimal_setup : State.Extension.t =
-  State.Extension.of_jv
+let minimal_setup : Cm_state.Extension.t =
+  Cm_state.Extension.of_jv
     (Jv.of_jv_list
        [
          call "view" "highlightSpecialChars";

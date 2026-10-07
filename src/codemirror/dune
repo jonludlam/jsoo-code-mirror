@@ -1,5 +1,7 @@
-; code-mirror: every package, and the codemirror package's basicSetup and
-; minimalSetup, written in OCaml so it has no bundle of its own.
+; code-mirror: the codemirror package's basicSetup and minimalSetup,
+; written in OCaml so it has no bundle of its own. It depends on the
+; packages they take extensions from, so that their bundles are on the
+; page.
 
 (library
  (name code_mirror)
@@ -12,6 +14,4 @@
   cm_commands
   cm_autocomplete
   cm_lint
-  cm_search
-  cm_legacy_modes
-  cm_theme_one_dark))
+  cm_search))

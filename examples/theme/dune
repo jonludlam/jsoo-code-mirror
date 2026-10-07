@@ -1,7 +1,11 @@
 (executable
  (name theme)
  (modes js)
- (libraries code-mirror))
+ (libraries
+  code-mirror
+  code-mirror.state
+  code-mirror.view
+  code-mirror.theme-one-dark))
 
 (alias
  (name all)

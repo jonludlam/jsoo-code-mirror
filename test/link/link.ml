@@ -4,8 +4,6 @@
    would not recognise them and EditorState.create would throw. Runs
    under node, so there is no view. *)
 
-open Code_mirror
-
 let globals =
   [
     "__CM__state";
@@ -26,13 +24,14 @@ let () =
 
 let ocaml_mode =
   let mllike = Jv.get (Jv.get Jv.global "__CM__legacy_modes") "mllike" in
-  Language.Stream.Language.(define (of_jv (Jv.get mllike "oCaml")))
+  Cm_language.Stream.Language.(define (of_jv (Jv.get mllike "oCaml")))
 
 let () =
   let extensions =
-    State.Extension.of_list [ basic_setup; Theme_one_dark.one_dark; ocaml_mode ]
+    Cm_state.Extension.of_list
+      [ Code_mirror.basic_setup; Cm_theme_one_dark.one_dark; ocaml_mode ]
   in
-  let config = State.EditorStateConfig.create ~doc:"linked" ~extensions () in
-  let state = State.EditorState.create ~config () in
-  let doc = State.Text.to_string (State.EditorState.doc state) in
+  let config = Cm_state.EditorStateConfig.create ~doc:"linked" ~extensions () in
+  let state = Cm_state.EditorState.create ~config () in
+  let doc = Cm_state.Text.to_string (Cm_state.EditorState.doc state) in
   if doc <> "linked" then failwith ("unexpected document: " ^ doc)

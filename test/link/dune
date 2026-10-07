@@ -3,4 +3,9 @@
 (test
  (name link)
  (modes js)
- (libraries code-mirror))
+ (libraries
+  code-mirror
+  code-mirror.state
+  code-mirror.language
+  code-mirror.legacy-modes
+  code-mirror.theme-one-dark))
