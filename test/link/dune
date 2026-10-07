@@ -1,0 +1,6 @@
+; Runs under node with `dune test`.
+
+(test
+ (name link)
+ (modes js)
+ (libraries code-mirror))
